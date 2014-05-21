@@ -1,31 +1,83 @@
 import cocos as c
+import heapq
+import os
 from cocos.director import director
-from pyglet.window import key
+from pyglet.window import key, mouse
 from pyglet import image
+from profilehooks import profile
+from ctypes import cdll
 
+triangle = cdll.LoadLibrary("triangle.so")
 
 director.init(width=1024, height=768, do_not_scale=True)
+texture_bin = image.atlas.TextureBin()
+ROAD_IMAGES = {}
+for file in os.listdir("images/roads"):
+    ROAD_IMAGES[file] = texture_bin.add(image.load("images/roads/"+file))
+GRASS_IMAGE = texture_bin.add(image.load("tiles.png"))
+
+MAP_SIZE = 20
+MAP_WIDTH = MAP_SIZE * 58
+MAP_HEIGHT = MAP_SIZE * 30
+
 
 class Scroller(c.layer.ScrollingManager):
-    is_event_handler = True
+    # is_event_handler = True
 
     def __init__(self):
         super(Scroller, self).__init__()
         self.cam_pos = [0, 0]
+        self.keyboard = key.KeyStateHandler()
+        director.window.push_handlers(self.keyboard)
+        self.schedule_interval(self.step, 0.05)
 
-    def on_key_press(self, pressed_key, modifiers):
-        if pressed_key == key.RIGHT:
+    def check_keys(self, dt):
+        if self.keyboard[key.RIGHT]:
+            print('ok')
+
+    def step(self, dt):
+        k = self.keyboard
+        if k[key.RIGHT]:
             self.cam_pos[0] += 32
-        elif pressed_key == key.LEFT:
+            self.force_focus(*self.cam_pos)
+        elif k[key.LEFT]:
             self.cam_pos[0] -= 32
-        elif pressed_key == key.UP:
+            self.force_focus(*self.cam_pos)
+        elif k[key.UP]:
             self.cam_pos[1] += 32
-        elif pressed_key == key.DOWN:
+            self.force_focus(*self.cam_pos)
+        elif k[key.DOWN]:
             self.cam_pos[1] -= 32
-        self.force_focus(*self.cam_pos)
+            self.force_focus(*self.cam_pos)
 
 
-class Cell(c.sprite.Sprite):
+class Rhombus():
+    def __init__(self, left, top, right, bottom):
+        self.left = left
+        self.top = top
+        self.right = right
+        self.bottom = bottom
+        self.cells = []
+
+    @profile
+    def contains(self, x, y):
+        # for x1, y1, x2, y2, x3, y3 in (self.left+self.top+self.right, self.left+self.bottom+self.right):
+            # s = abs(x2*y3-x3*y2-x1*y3+x3*y1+x1*y2-x2*y1)
+            # s1 = abs(x2*y3-x3*y2-x*y3+x3*y+x*y2-x2*y)
+            # s2 = abs(x*y3-x3*y-x1*y3+x3*y1+x1*y-x*y1)
+            # s3 = abs(x2*y-x*y2-x1*y+x*y1+x1*y2-x2*y1)
+            #
+            # if s == s1+s2+s3:
+            #     return True
+
+            # if triangle.contains(int(x), int(y), x1, y1, x2, y2, x3, y3):
+            #     return True
+
+        # return False
+        return triangle.contains(int(x), int(y), *(self.left+self.top+self.right+self.left+self.bottom+self.right))
+
+
+class Cell(c.sprite.Sprite, Rhombus):
     GROUND = "ground"
     ROAD = "road"
 
@@ -38,26 +90,27 @@ class Cell(c.sprite.Sprite):
     NODE_BOTTOM = 0b0001
 
     NODES = {
-        0b0000: "images/roads/road_tile.png",
-        0b0001: "images/roads/road_tile.png",
-        0b0010: "images/roads/road_tile_90.png",
-        0b0011: "images/roads/roadturn1.png",
-        0b0100: "images/roads/road_tile.png",
-        0b0101: "images/roads/road_tile.png",
-        0b0110: "images/roads/roadturn2.png",
-        0b0111: "images/roads/crossroad4.png",
-        0b1000: "images/roads/road_tile_90.png",
-        0b1001: "images/roads/roadturn3.png",
-        0b1010: "images/roads/road_tile_90.png",
-        0b1011: "images/roads/crossroad5.png",
-        0b1100: "images/roads/roadturn4.png",
-        0b1101: "images/roads/crossroad3.png",
-        0b1110: "images/roads/crossroad2.png",
-        0b1111: "images/roads/crossroad1.png",
+        0b0000: ROAD_IMAGES["road_tile.png"],
+        0b0001: ROAD_IMAGES["road_tile.png"],
+        0b0010: ROAD_IMAGES["road_tile_90.png"],
+        0b0011: ROAD_IMAGES["roadturn1.png"],
+        0b0100: ROAD_IMAGES["road_tile.png"],
+        0b0101: ROAD_IMAGES["road_tile.png"],
+        0b0110: ROAD_IMAGES["roadturn2.png"],
+        0b0111: ROAD_IMAGES["crossroad4.png"],
+        0b1000: ROAD_IMAGES["road_tile_90.png"],
+        0b1001: ROAD_IMAGES["roadturn3.png"],
+        0b1010: ROAD_IMAGES["road_tile_90.png"],
+        0b1011: ROAD_IMAGES["crossroad5.png"],
+        0b1100: ROAD_IMAGES["roadturn4.png"],
+        0b1101: ROAD_IMAGES["crossroad3.png"],
+        0b1110: ROAD_IMAGES["crossroad2.png"],
+        0b1111: ROAD_IMAGES["crossroad1.png"],
     }
 
     def __init__(self, cell_image, x, y, i, j, cell_type=GROUND):
         super(Cell, self).__init__(cell_image)
+        # c.sprite.Sprite.__init__(self, cell_image)
         self.position = (x, y)
         self.i = i
         self.j = j
@@ -69,35 +122,27 @@ class Cell(c.sprite.Sprite):
 
         self.node = 0b0000
 
+        self.passable = True
+        self.G = 0
+        self.H = 0
+        self.F = 0
+        self.parent_cell = None
+
     def contains(self, x, y):
-        for x1, y1, x2, y2, x3, y3 in (self.left+self.top+self.right, self.left+self.bottom+self.right):
-            s = abs(x2*y3-x3*y2-x1*y3+x3*y1+x1*y2-x2*y1)
-            s1 = abs(x2*y3-x3*y2-x*y3+x3*y+x*y2-x2*y)
-            s2 = abs(x*y3-x3*y-x1*y3+x3*y1+x1*y-x*y1)
-            s3 = abs(x2*y-x*y2-x1*y+x*y1+x1*y2-x2*y1)
-
-            if s == s1+s2+s3:
-                return True
-
-        return False
+        return Rhombus.contains(self, x, y)
 
 
 class Highlights(c.layer.Layer):
     is_event_handler = True
+
     def __init__(self):
         super(Highlights, self).__init__()
         self.tile_highlight = c.sprite.Sprite("highlight.png")
         self.add(self.tile_highlight)
 
-    def on_mouse_motion(self, x, y, dx, dy):
-        x, y = director.get_virtual_coordinates(*scroller.pixel_from_screen(x, y))
-        for row in cells:
-            for cell in row:
-                if cell.contains(x, y):
-                    self.tile_highlight.position = cell.position
-                    break
+        self.roads = []
 
-layer = Highlights()
+highlights = Highlights()
 
 
 class IsoMap(c.layer.ScrollableLayer):
@@ -105,51 +150,121 @@ class IsoMap(c.layer.ScrollableLayer):
 
     def __init__(self, atlas):
         super(IsoMap, self).__init__()
-        map_size = 20
-        map_width = map_size * 58 + 29
-        map_height = map_size * 30
-        center_x = map_width // 2
+        # center_x = MAP_WIDTH // 2
+        # print(center_x)
         self.batch = c.batch.BatchNode()
+        self.start_cell = None
+        self.prev_cell = None
 
-        for row in range(map_size):
+        self.rhombuses = (
+            Rhombus((-MAP_WIDTH//4, MAP_HEIGHT//4-15),
+                    (0, MAP_HEIGHT//2-15),
+                    (MAP_WIDTH//4, MAP_HEIGHT//4-15),
+                    (0, 0)),
+            Rhombus((-MAP_WIDTH//4,
+                     MAP_HEIGHT*3//4-15),
+                    (0, MAP_HEIGHT-15),
+                    (MAP_WIDTH//4, MAP_HEIGHT*3//4-14),
+                    (0, MAP_HEIGHT//2-15)),
+            Rhombus((-MAP_WIDTH//2, MAP_HEIGHT//2-15),
+                    (-MAP_WIDTH//4, MAP_HEIGHT*3//4-15),
+                    (0, MAP_HEIGHT//2-15),
+                    (-MAP_WIDTH//4, MAP_HEIGHT//4-15)),
+            Rhombus((0, MAP_HEIGHT//2-15),
+                    (MAP_WIDTH//4, MAP_HEIGHT*3//4-14),
+                    (MAP_WIDTH//2, MAP_HEIGHT//2-15),
+                    (MAP_WIDTH//4, MAP_HEIGHT//4-15))
+        )
+
+        for row in range(MAP_SIZE):
             cells.append([])
-            for col in range(map_size):
-                cell = Cell(atlas, (center_x-29) - row*29 + col*29, row*15 + col*15, row, col)
+            for col in range(MAP_SIZE):
+                cell = Cell(atlas, -row*29 + col*29, row*15 + col*15, row, col)
                 cells[row].append(cell)
                 self.batch.add(cell)
 
-                # layer.add(c.text.Label(
-                #     "{};{}".format((center_x-29) - row*29 + col*29, row*15 + col*15),
-                #     font_size=8,
-                #     position=((center_x-29) - row*29 + col*29, row*15 + col*15),
-                #     anchor_x="center",
+                if row < MAP_SIZE // 2 and col < MAP_SIZE // 2:
+                    rhombus = self.rhombuses[0]
+                elif row >= MAP_SIZE // 2 and col >= MAP_SIZE // 2:
+                    rhombus = self.rhombuses[1]
+                elif row >= MAP_SIZE //2 and col < MAP_SIZE // 2:
+                    rhombus = self.rhombuses[2]
+                else:
+                    rhombus = self.rhombuses[3]
+                rhombus.cells.append(cell)
+
+                # highlights.add(c.text.Label(
+                    # "{};{}".format((center_x-29) - row*29 + col*29, row*15 + col*15),
+                    # "{};{}".format(cell.i, cell.j),
+                    # font_size=8,
+                    # position=((center_x-29) - row*29 + col*29, row*15 + col*15),
+                    # anchor_x="center",
                 # ))
 
         self.add(self.batch)
 
-        self.add(layer)
+        # for cell in self.rhombuses[3].cells:
+        #     self.add(c.sprite.Sprite("enemy.png", position=cell.position))
+        # for rhombus in self.rhombuses:
+        #     for i in rhombus:
+        #         self.add(c.sprite.Sprite("enemy.png", position=i))
+        self.add(highlights)
+
+    def on_mouse_motion(self, x, y, dx, dy):
+        x, y = director.get_virtual_coordinates(*scroller.pixel_from_screen(x, y))
+        cell = self.find_cell(x, y)
+        if not cell:
+            return
+        highlights.tile_highlight.position = cell.position
 
     def on_mouse_press(self, x, y, button, modifiers):
         x, y = director.get_virtual_coordinates(*scroller.pixel_from_screen(x, y))
-        for row in cells:
-            for cell in row:
-                if cell.contains(x, y):
-                    self.add_road(cell)
-                    break
+        cell = self.find_cell(x, y)
+        if not cell:
+            return
+        # if button == mouse.LEFT:
+        self.add_road(cell)
+        # elif button == mouse.RIGHT:
+        #     if not self.start_cell:
+        self.start_cell = cell
+            # else:
+            #     self.calculate_path(self.start_cell, cell)
 
+    @profile
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         x, y = director.get_virtual_coordinates(*scroller.pixel_from_screen(x, y))
-        for row in cells:
-            for cell in row:
-                if cell.contains(x, y):
-                    layer.tile_highlight.position = cell.position
-                    self.add_road(cell)
-                    break
+        cell = self.find_cell(x, y)
+        if not cell:
+            return
+
+        if cell == self.prev_cell:
+            return
+        else:
+            self.prev_cell = cell
+        highlights.tile_highlight.position = cell.position
+        # self.add_road(cell)
+        path = self.calculate_path(cell)
+        for cell in highlights.roads[:]:
+            highlights.roads.remove(cell)
+            self.remove_road(cell)
+        for cell in path:
+            if cell.type != Cell.ROAD:
+                highlights.roads.append(cell)
+                self.add_road(cell)
+
+    def on_mouse_release(self, x, y, button, modifiers):
+        self.start_cell = None
+        highlights.roads.clear()
+
+    def find_cell(self, x, y):
+        for rhombus in self.rhombuses:
+            if rhombus.contains(x, y):
+                for cell in rhombus.cells:
+                    if cell.contains(x, y):
+                        return cell
+        return None
 
     def add_road(self, cell):
-        # topright = cells[cell.i-1][cell.j+1]
-        # bottomright = cells[cell.i-1][cell.j-1]
-        # overright = cells[cell.i-2][cell.j]
         cell.type = Cell.ROAD
         cell.node = 0b0000
 
@@ -169,45 +284,114 @@ class IsoMap(c.layer.ScrollableLayer):
                 elif index == 3:
                     cell.node |= Cell.NODE_BOTTOM
 
-                neighbour.node = 0b0000
-                n_left = cells[neighbour.i+1][neighbour.j]
-                n_top = cells[neighbour.i][neighbour.j+1]
-                n_right = cells[neighbour.i-1][neighbour.j]
-                n_bottom = cells[neighbour.i][neighbour.j-1]
-                if n_left.type == Cell.ROAD:
-                    neighbour.node |= Cell.NODE_LEFT
-                if n_top.type == Cell.ROAD:
-                    neighbour.node |= Cell.NODE_TOP
-                if n_right.type == Cell.ROAD:
-                    neighbour.node |= Cell.NODE_RIGHT
-                if n_bottom.type == Cell.ROAD:
-                    neighbour.node |= Cell.NODE_BOTTOM
-                neighbour.image = image.load(Cell.NODES[neighbour.node])
+                self.change_road(neighbour)
+        cell.image = Cell.NODES[cell.node]
 
+    def change_road(self, cell):
+        cell.node = 0b0000
+        n_left = cells[cell.i+1][cell.j]
+        n_top = cells[cell.i][cell.j+1]
+        n_right = cells[cell.i-1][cell.j]
+        n_bottom = cells[cell.i][cell.j-1]
+        if n_left.type == Cell.ROAD:
+            cell.node |= Cell.NODE_LEFT
+        if n_top.type == Cell.ROAD:
+            cell.node |= Cell.NODE_TOP
+        if n_right.type == Cell.ROAD:
+            cell.node |= Cell.NODE_RIGHT
+        if n_bottom.type == Cell.ROAD:
+            cell.node |= Cell.NODE_BOTTOM
+        cell.image = Cell.NODES[cell.node]
 
-        # if right.type == Cell.ROAD:
-        #     road_tile = "images/roads/road_tile_90.png"
-        #     if topright.type == Cell.ROAD and bottomright.type == Cell.ROAD:
-        #         if overright.type == Cell.ROAD:
-        #             right.image = image.load("crossroad.png")
-        #         else:
-        #             right.image = image.load("crossroad3.png")
-        #         right.type = Cell.ROAD
-        #
-        # else:
-        #     road_tile = "images/roads/road_tile.png"
-        cell.image = image.load(Cell.NODES[cell.node])
+    def remove_road(self, cell):
+        cell.type = Cell.GROUND
+        cell.node = 0b0000
+        cell.image = GRASS_IMAGE
 
+        left = cells[cell.i+1][cell.j]
+        top = cells[cell.i][cell.j+1]
+        right = cells[cell.i-1][cell.j]
+        bottom = cells[cell.i][cell.j-1]
+        for index, neighbour in enumerate((left, top, right, bottom)):
+            if neighbour.type == Cell.ROAD:
+                self.change_road(neighbour)
 
-    # def change_cell(self, cell, image):
-    #     road = Cell(image, cell.x, cell.y, cell.i, cell.j, Cell.ROAD)
-    #     cells[cell.i][cell.j] = road
-    #     self.batch.remove(cell)
-    #     self.batch.add(road)
+    def calculate_path(self, finish_cell):
+        """
+        Функция ищет путь от стартовой клетки к финишной.
+        """
 
+        start_cell = self.start_cell
+        opened_list = []
+        closed_list = []
+        heap = []
+
+        orth_neighbours = [
+            (0, 1),
+            (1, 0),
+            (0, -1),
+            (-1, 0),
+        ]
+
+        current_cell = start_cell
+        opened_list.append(start_cell)
+        cols = len(cells)
+        rows = len(cells[0])
+
+        cells_counter = 0
+        do_search = True
+        while current_cell != finish_cell:
+            opened_list.remove(current_cell)
+            closed_list.append(current_cell)
+
+            # random.shuffle(orth_neighbours)
+            for i, j in orth_neighbours:
+                cell_i = current_cell.i+i
+                cell_j = current_cell.j+j
+                if cell_i < 0 or cell_j < 0 or cell_i >= cols or cell_j >= rows:
+                    continue
+
+                cell = cells[cell_i][cell_j]
+
+                if not cell.passable or cell in closed_list:
+                    continue
+
+                if cell not in opened_list:
+                    cell.parent_cell = current_cell
+
+                    cell.G = current_cell.G + 10
+
+                    # при поиске ближайшей выделенной клетки отключаем эвристику
+                    cell.H = (abs((finish_cell.i - cell_i) + abs(finish_cell.j - cell.j))) * 10
+                    cell.F = cell.G + cell.H
+
+                    opened_list.append(cell)
+                    heapq.heappush(heap, (cell.F, cells_counter, cell))
+                    cells_counter += 1
+                else:
+                    if cell.G > current_cell.G + 10:
+                        cell.parent_cell = current_cell
+                        cell.G = current_cell.G + 10
+                        cell.F = cell.G + cell.H
+
+            if not opened_list:
+                return []
+
+            current_cell = heapq.heappop(heap)[2]
+
+        path = []
+        current_cell = finish_cell
+        path.append(finish_cell)
+        while current_cell != start_cell:
+            next_cell = current_cell.parent_cell
+            path.append(next_cell)
+            current_cell = next_cell
+        path.reverse()
+
+        return path
 
 cells = []
-level = IsoMap('tiles.png')
+level = IsoMap(GRASS_IMAGE)
 
 scroller = Scroller()
 scroller.add(level)
