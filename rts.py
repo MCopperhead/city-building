@@ -16,7 +16,7 @@ for file in os.listdir("images/roads"):
     ROAD_IMAGES[file] = texture_bin.add(image.load("images/roads/"+file))
 GRASS_IMAGE = texture_bin.add(image.load("tiles.png"))
 
-MAP_SIZE = 20
+MAP_SIZE = 30
 MAP_WIDTH = MAP_SIZE * 58
 MAP_HEIGHT = MAP_SIZE * 30
 
@@ -154,6 +154,7 @@ class IsoMap(c.layer.ScrollableLayer):
         self.start_cell = None
         self.prev_cell = None
 
+        # TODO: сделать динамическое создание ромбов на больших картах
         self.rhombuses = (
             Rhombus((-MAP_WIDTH//4, MAP_HEIGHT//4-15),
                     (0, MAP_HEIGHT//2-15),
