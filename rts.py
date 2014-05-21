@@ -59,8 +59,9 @@ class Rhombus():
         self.bottom = bottom
         self.cells = []
 
-    @profile
+    # @profile
     def contains(self, x, y):
+        # Пока оставил это на случай, если не удастся скомпилировать С-шную библиотеку под винду
         # for x1, y1, x2, y2, x3, y3 in (self.left+self.top+self.right, self.left+self.bottom+self.right):
             # s = abs(x2*y3-x3*y2-x1*y3+x3*y1+x1*y2-x2*y1)
             # s1 = abs(x2*y3-x3*y2-x*y3+x3*y+x*y2-x2*y)
@@ -68,9 +69,6 @@ class Rhombus():
             # s3 = abs(x2*y-x*y2-x1*y+x*y1+x1*y2-x2*y1)
             #
             # if s == s1+s2+s3:
-            #     return True
-
-            # if triangle.contains(int(x), int(y), x1, y1, x2, y2, x3, y3):
             #     return True
 
         # return False
@@ -230,7 +228,7 @@ class IsoMap(c.layer.ScrollableLayer):
             # else:
             #     self.calculate_path(self.start_cell, cell)
 
-    @profile
+    # @profile
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         x, y = director.get_virtual_coordinates(*scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
