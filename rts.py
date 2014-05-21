@@ -29,8 +29,35 @@ class Cell(c.sprite.Sprite):
     GROUND = "ground"
     ROAD = "road"
 
-    def __init__(self, image, x, y, i, j, cell_type=GROUND):
-        super(Cell, self).__init__(image)
+    # узлы - места ячеек дорог, где они соединяются с другими
+    # ячейка проверяет своих соседей, и если они являются дорогами - она побитовым ИЛИ записывает себе нужные узлы
+    # и потом из словаря выбирается нужное изображение
+    NODE_LEFT = 0b1000
+    NODE_TOP = 0b0100
+    NODE_RIGHT = 0b0010
+    NODE_BOTTOM = 0b0001
+
+    NODES = {
+        0b0000: "images/roads/road_tile.png",
+        0b0001: "images/roads/road_tile.png",
+        0b0010: "images/roads/road_tile_90.png",
+        0b0011: "images/roads/roadturn1.png",
+        0b0100: "images/roads/road_tile.png",
+        0b0101: "images/roads/road_tile.png",
+        0b0110: "images/roads/roadturn2.png",
+        0b0111: "images/roads/crossroad4.png",
+        0b1000: "images/roads/road_tile_90.png",
+        0b1001: "images/roads/roadturn3.png",
+        0b1010: "images/roads/road_tile_90.png",
+        0b1011: "images/roads/crossroad5.png",
+        0b1100: "images/roads/roadturn4.png",
+        0b1101: "images/roads/crossroad3.png",
+        0b1110: "images/roads/crossroad2.png",
+        0b1111: "images/roads/crossroad1.png",
+    }
+
+    def __init__(self, cell_image, x, y, i, j, cell_type=GROUND):
+        super(Cell, self).__init__(cell_image)
         self.position = (x, y)
         self.i = i
         self.j = j
@@ -39,6 +66,8 @@ class Cell(c.sprite.Sprite):
         self.top = (x, y+15)
         self.bottom = (x, y-15)
         self.type = cell_type
+
+        self.node = 0b0000
 
     def contains(self, x, y):
         for x1, y1, x2, y2, x3, y3 in (self.left+self.top+self.right, self.left+self.bottom+self.right):
@@ -51,6 +80,7 @@ class Cell(c.sprite.Sprite):
                 return True
 
         return False
+
 
 class Highlights(c.layer.Layer):
     is_event_handler = True
@@ -117,23 +147,57 @@ class IsoMap(c.layer.ScrollableLayer):
                     break
 
     def add_road(self, cell):
-        right = cells[cell.i-1][cell.j]
-        top = cells[cell.i][cell.j+1]
-        bottom = cells[cell.i][cell.j-1]
-        left = cells[cell.i+1][cell.j]
-        topright = cells[cell.i-1][cell.j+1]
-        bottomright = cells[cell.i-1][cell.j-1]
-
-        if right.type == Cell.ROAD:
-            road_tile = "road_tile_90.png"
-            if topright.type == Cell.ROAD and bottomright.type == Cell.ROAD:
-                right.image = image.load("crossroad_tile.png")
-                right.type = Cell.ROAD
-        else:
-            road_tile = "road_tile.png"
-        # self.change_cell(cell, road_tile)
-        cell.image = image.load(road_tile)
+        # topright = cells[cell.i-1][cell.j+1]
+        # bottomright = cells[cell.i-1][cell.j-1]
+        # overright = cells[cell.i-2][cell.j]
         cell.type = Cell.ROAD
+        cell.node = 0b0000
+
+        left = cells[cell.i+1][cell.j]
+        top = cells[cell.i][cell.j+1]
+        right = cells[cell.i-1][cell.j]
+        bottom = cells[cell.i][cell.j-1]
+
+        for index, neighbour in enumerate((left, top, right, bottom)):
+            if neighbour.type == Cell.ROAD:
+                if index == 0:
+                    cell.node |= Cell.NODE_LEFT
+                elif index == 1:
+                    cell.node |= Cell.NODE_TOP
+                elif index == 2:
+                    cell.node |= Cell.NODE_RIGHT
+                elif index == 3:
+                    cell.node |= Cell.NODE_BOTTOM
+
+                neighbour.node = 0b0000
+                n_left = cells[neighbour.i+1][neighbour.j]
+                n_top = cells[neighbour.i][neighbour.j+1]
+                n_right = cells[neighbour.i-1][neighbour.j]
+                n_bottom = cells[neighbour.i][neighbour.j-1]
+                if n_left.type == Cell.ROAD:
+                    neighbour.node |= Cell.NODE_LEFT
+                if n_top.type == Cell.ROAD:
+                    neighbour.node |= Cell.NODE_TOP
+                if n_right.type == Cell.ROAD:
+                    neighbour.node |= Cell.NODE_RIGHT
+                if n_bottom.type == Cell.ROAD:
+                    neighbour.node |= Cell.NODE_BOTTOM
+                neighbour.image = image.load(Cell.NODES[neighbour.node])
+
+
+        # if right.type == Cell.ROAD:
+        #     road_tile = "images/roads/road_tile_90.png"
+        #     if topright.type == Cell.ROAD and bottomright.type == Cell.ROAD:
+        #         if overright.type == Cell.ROAD:
+        #             right.image = image.load("crossroad.png")
+        #         else:
+        #             right.image = image.load("crossroad3.png")
+        #         right.type = Cell.ROAD
+        #
+        # else:
+        #     road_tile = "images/roads/road_tile.png"
+        cell.image = image.load(Cell.NODES[cell.node])
+
 
     # def change_cell(self, cell, image):
     #     road = Cell(image, cell.x, cell.y, cell.i, cell.j, Cell.ROAD)
