@@ -1,6 +1,7 @@
 import cocos as c
 import heapq
 import os
+from random import randint
 from cocos.director import director
 from pyglet.window import key, mouse
 from pyglet import image
@@ -16,7 +17,8 @@ for file in os.listdir("images/roads"):
     ROAD_IMAGES[file] = texture_bin.add(image.load("images/roads/"+file))
 GRASS_IMAGE = texture_bin.add(image.load("tiles.png"))
 
-MAP_SIZE = 30
+# Из-за динамической разбивки карты на более мелкие ромбы, размер карты должен быть степенью двойки
+MAP_SIZE = 128
 MAP_WIDTH = MAP_SIZE * 58
 MAP_HEIGHT = MAP_SIZE * 30
 
@@ -52,27 +54,80 @@ class Scroller(c.layer.ScrollingManager):
 
 
 class Rhombus():
-    def __init__(self, left, top, right, bottom):
+    def __init__(self, left, top, right, bottom, width, height, size):
         self.left = left
         self.top = top
         self.right = right
         self.bottom = bottom
+        self.width = width
+        self.height = height
+        self.size = size
         self.cells = []
+        self.subrhombuses = ()
 
-    # @profile
+    @profile
     def contains(self, x, y):
         # Пока оставил это на случай, если не удастся скомпилировать С-шную библиотеку под винду
         # for x1, y1, x2, y2, x3, y3 in (self.left+self.top+self.right, self.left+self.bottom+self.right):
-            # s = abs(x2*y3-x3*y2-x1*y3+x3*y1+x1*y2-x2*y1)
-            # s1 = abs(x2*y3-x3*y2-x*y3+x3*y+x*y2-x2*y)
-            # s2 = abs(x*y3-x3*y-x1*y3+x3*y1+x1*y-x*y1)
-            # s3 = abs(x2*y-x*y2-x1*y+x*y1+x1*y2-x2*y1)
-            #
-            # if s == s1+s2+s3:
-            #     return True
+        #     s = abs(x2*y3-x3*y2-x1*y3+x3*y1+x1*y2-x2*y1)
+        #     s1 = abs(x2*y3-x3*y2-x*y3+x3*y+x*y2-x2*y)
+        #     s2 = abs(x*y3-x3*y-x1*y3+x3*y1+x1*y-x*y1)
+        #     s3 = abs(x2*y-x*y2-x1*y+x*y1+x1*y2-x2*y1)
+        #
+        #     if s == s1+s2+s3:
+        #         return True
 
         # return False
         return triangle.contains(int(x), int(y), *(self.left+self.top+self.right+self.left+self.bottom+self.right))
+
+    def subdivide(self):
+        """
+        Делит ромб на четыре меньших ромба.
+        """
+        if self.size // 2 < 16:
+            return
+
+        width = self.width
+        height = self.height
+        offset_x = self.bottom[0]
+        offset_y = self.bottom[1]
+        rhombus1 = Rhombus((-width//4 + offset_x, height//4 + offset_y),
+                           (0 + offset_x, height//2 + offset_y),
+                           (width//4 + offset_x, height//4 + offset_y),
+                           (0 + offset_x, 0 + offset_y),
+                           width // 2,
+                           height // 2,
+                           self.size // 2)
+        rhombus1.parent = self
+        rhombus2 = Rhombus((-width//4 + offset_x, height*3//4 + offset_y),
+                           (0 + offset_x, height + offset_y),
+                           (width//4 + offset_x, height*3//4 + offset_y),
+                           (0 + offset_x, height//2 + offset_y),
+                           width // 2,
+                           height // 2,
+                           self.size // 2)
+        rhombus2.parent = self
+        rhombus3 = Rhombus((-width//2 + offset_x, height//2 + offset_y),
+                           (-width//4 + offset_x, height*3//4 + offset_y),
+                           (0 + offset_x, height//2 + offset_y),
+                           (-width//4 + offset_x, height//4 + offset_y),
+                           width // 2,
+                           height // 2,
+                           self.size // 2)
+        rhombus3.parent = self
+        rhombus4 = Rhombus((0 + offset_x, height//2 + offset_y),
+                           (width//4 + offset_x, height*3//4 + offset_y),
+                           (width//2 + offset_x, height//2 + offset_y),
+                           (width//4 + offset_x, height//4 + offset_y),
+                           width // 2,
+                           height // 2,
+                           self.size // 2)
+        rhombus4.parent = self
+
+        self.subrhombuses = (rhombus1, rhombus2, rhombus3, rhombus4)
+
+        for rhombus in self.subrhombuses:
+            rhombus.subdivide()
 
 
 class Cell(c.sprite.Sprite, Rhombus):
@@ -140,6 +195,9 @@ class Highlights(c.layer.Layer):
 
         self.roads = []
 
+        self.batch = c.batch.BatchNode()
+        self.add(self.batch)
+
 highlights = Highlights()
 
 
@@ -154,26 +212,47 @@ class IsoMap(c.layer.ScrollableLayer):
         self.start_cell = None
         self.prev_cell = None
 
-        # TODO: сделать динамическое создание ромбов на больших картах
         self.rhombuses = (
             Rhombus((-MAP_WIDTH//4, MAP_HEIGHT//4-15),
                     (0, MAP_HEIGHT//2-15),
                     (MAP_WIDTH//4, MAP_HEIGHT//4-15),
-                    (0, 0)),
+                    (0, -15),
+                    MAP_WIDTH // 2,
+                    MAP_HEIGHT // 2,
+                    MAP_SIZE // 2),
             Rhombus((-MAP_WIDTH//4,
                      MAP_HEIGHT*3//4-15),
                     (0, MAP_HEIGHT-15),
-                    (MAP_WIDTH//4, MAP_HEIGHT*3//4-14),
-                    (0, MAP_HEIGHT//2-15)),
+                    (MAP_WIDTH//4, MAP_HEIGHT*3//4-15),
+                    (0, MAP_HEIGHT//2-15),
+                    MAP_WIDTH // 2,
+                    MAP_HEIGHT // 2,
+                    MAP_SIZE // 2),
             Rhombus((-MAP_WIDTH//2, MAP_HEIGHT//2-15),
                     (-MAP_WIDTH//4, MAP_HEIGHT*3//4-15),
                     (0, MAP_HEIGHT//2-15),
-                    (-MAP_WIDTH//4, MAP_HEIGHT//4-15)),
+                    (-MAP_WIDTH//4, MAP_HEIGHT//4-15),
+                    MAP_WIDTH // 2,
+                    MAP_HEIGHT // 2,
+                    MAP_SIZE // 2),
             Rhombus((0, MAP_HEIGHT//2-15),
-                    (MAP_WIDTH//4, MAP_HEIGHT*3//4-14),
+                    (MAP_WIDTH//4, MAP_HEIGHT*3//4-15),
                     (MAP_WIDTH//2, MAP_HEIGHT//2-15),
-                    (MAP_WIDTH//4, MAP_HEIGHT//4-15))
+                    (MAP_WIDTH//4, MAP_HEIGHT//4-15),
+                    MAP_WIDTH // 2,
+                    MAP_HEIGHT // 2,
+                    MAP_SIZE // 2)
         )
+
+        # rhombus_size = MAP_SIZE // 2
+        # co = 1
+        # rhombuses = self.rhombuses
+        # while rhombus_size > 10:
+        #     co += 1
+        for rhombus in self.rhombuses:
+            rhombus.subdivide()
+
+        # print(co)
 
         for row in range(MAP_SIZE):
             cells.append([])
@@ -182,15 +261,31 @@ class IsoMap(c.layer.ScrollableLayer):
                 cells[row].append(cell)
                 self.batch.add(cell)
 
-                if row < MAP_SIZE // 2 and col < MAP_SIZE // 2:
-                    rhombus = self.rhombuses[0]
-                elif row >= MAP_SIZE // 2 and col >= MAP_SIZE // 2:
-                    rhombus = self.rhombuses[1]
-                elif row >= MAP_SIZE //2 and col < MAP_SIZE // 2:
-                    rhombus = self.rhombuses[2]
-                else:
-                    rhombus = self.rhombuses[3]
-                rhombus.cells.append(cell)
+                size = MAP_SIZE
+                rhombuses = self.rhombuses
+                rhombus = None
+                while size > 16:
+                    # if rhombuses == self.rhombuses[2].subrhombuses[0].subrhombuses:
+                    #     pass
+
+                    offset_i = 0 if not rhombus else rhombus.cells[0].i
+                    offset_j = 0 if not rhombus else rhombus.cells[0].j
+                    limit_row = row - offset_i
+                    limit_col = col - offset_j
+
+                    if limit_row < size // 2 and limit_col < size // 2:
+                        rhombus = rhombuses[0]
+                    elif limit_row >= size // 2 and limit_col >= size // 2:
+                        rhombus = rhombuses[1]
+                    elif limit_row  >= size // 2 and limit_col < size // 2:
+                        rhombus = rhombuses[2]
+                    else:
+                        rhombus = rhombuses[3]
+                    rhombus.cells.append(cell)
+
+                    size //= 2
+                    rhombuses = rhombus.subrhombuses
+
 
                 # highlights.add(c.text.Label(
                     # "{};{}".format((center_x-29) - row*29 + col*29, row*15 + col*15),
@@ -202,14 +297,18 @@ class IsoMap(c.layer.ScrollableLayer):
 
         self.add(self.batch)
 
-        # for cell in self.rhombuses[3].cells:
-        #     self.add(c.sprite.Sprite("enemy.png", position=cell.position))
+        # for rhombus in self.rhombuses[0].subrhombuses:
+        #     for cell in rhombus.cells:
+        #         self.add(c.sprite.Sprite("point.png", position=cell.position, color=(0, 255, 0)))
+
+        # for rhombus in self.rhombuses[0].subrhombuses:
         # for rhombus in self.rhombuses:
-        #     for i in rhombus:
-        #         self.add(c.sprite.Sprite("enemy.png", position=i))
+        #     for i in (rhombus.left, rhombus.top, rhombus.right, rhombus.bottom):
+        #         self.add(c.sprite.Sprite("point.png", position=i, color=(0, 255, 255)))
         self.add(highlights)
 
     def on_mouse_motion(self, x, y, dx, dy):
+        # return
         x, y = director.get_virtual_coordinates(*scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
         if not cell:
@@ -221,6 +320,7 @@ class IsoMap(c.layer.ScrollableLayer):
         cell = self.find_cell(x, y)
         if not cell:
             return
+        # print(cell.i, cell.j)
         # if button == mouse.LEFT:
         self.add_road(cell)
         # elif button == mouse.RIGHT:
@@ -256,11 +356,19 @@ class IsoMap(c.layer.ScrollableLayer):
         highlights.roads.clear()
 
     def find_cell(self, x, y):
-        for rhombus in self.rhombuses:
-            if rhombus.contains(x, y):
-                for cell in rhombus.cells:
-                    if cell.contains(x, y):
-                        return cell
+        rhombuses = self.rhombuses
+        while rhombuses:
+            for rhombus in rhombuses:
+                if rhombus.contains(x, y):
+                    rhombuses = rhombus.subrhombuses
+                    break
+            else:
+                break
+
+        for cell in rhombus.cells:
+            if cell.contains(x, y):
+                return cell
+
         return None
 
     def add_road(self, cell):
