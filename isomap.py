@@ -3,7 +3,7 @@ import heapq
 from cocos.director import director
 from cell import Rhombus, Cell
 from highlight_layer import Highlight
-from scroller import scroller
+from scroller import Scroller
 from textures import GRASS_IMAGE
 
 # Из-за динамической разбивки карты на более мелкие ромбы, размер карты должен быть степенью двойки
@@ -24,6 +24,7 @@ class IsoMap(c.layer.ScrollableLayer):
         self.start_cell = None
         self.prev_cell = None
         self.highlight = Highlight()
+        self.scroller = Scroller()
 
         self.rhombuses = (
             Rhombus((-MAP_WIDTH//4, MAP_HEIGHT//4-15),
@@ -133,14 +134,14 @@ class IsoMap(c.layer.ScrollableLayer):
 
     def on_mouse_motion(self, x, y, dx, dy):
         # return
-        x, y = director.get_virtual_coordinates(*scroller.pixel_from_screen(x, y))
+        x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
         if not cell:
             return
         self.highlight.tile_highlight.position = cell.position
 
     def on_mouse_press(self, x, y, button, modifiers):
-        x, y = director.get_virtual_coordinates(*scroller.pixel_from_screen(x, y))
+        x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
         if not cell:
             return
@@ -153,7 +154,7 @@ class IsoMap(c.layer.ScrollableLayer):
         #     self.calculate_path(cell)
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
-        x, y = director.get_virtual_coordinates(*scroller.pixel_from_screen(x, y))
+        x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
         if not cell:
             return
