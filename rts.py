@@ -5,7 +5,7 @@ from random import randint
 from cocos.director import director
 from pyglet.window import key, mouse
 from pyglet import image
-from profilehooks import profile
+import profilehooks
 from ctypes import cdll
 
 triangle = cdll.LoadLibrary("triangle.so")
@@ -18,7 +18,7 @@ for file in os.listdir("images/roads"):
 GRASS_IMAGE = texture_bin.add(image.load("tiles.png"))
 
 # Из-за динамической разбивки карты на более мелкие ромбы, размер карты должен быть степенью двойки
-MAP_SIZE = 128
+MAP_SIZE = 64
 MAP_WIDTH = MAP_SIZE * 58
 MAP_HEIGHT = MAP_SIZE * 30
 
@@ -32,10 +32,6 @@ class Scroller(c.layer.ScrollingManager):
         self.keyboard = key.KeyStateHandler()
         director.window.push_handlers(self.keyboard)
         self.schedule_interval(self.step, 0.05)
-
-    def check_keys(self, dt):
-        if self.keyboard[key.RIGHT]:
-            print('ok')
 
     def step(self, dt):
         k = self.keyboard
@@ -65,7 +61,7 @@ class Rhombus():
         self.cells = []
         self.subrhombuses = ()
 
-    @profile
+    # @profile
     def contains(self, x, y):
         # Пока оставил это на случай, если не удастся скомпилировать С-шную библиотеку под винду
         # for x1, y1, x2, y2, x3, y3 in (self.left+self.top+self.right, self.left+self.bottom+self.right):
@@ -172,13 +168,12 @@ class Cell(c.sprite.Sprite, Rhombus):
         self.top = (x, y+15)
         self.bottom = (x, y-15)
         self.type = cell_type
+        self.neighbours = set()
 
         self.node = 0b0000
 
         self.passable = True
-        self.G = 0
         self.H = 0
-        self.F = 0
         self.parent_cell = None
 
     def contains(self, x, y):
@@ -295,6 +290,17 @@ class IsoMap(c.layer.ScrollableLayer):
                     # anchor_x="center",
                 # ))
 
+        rows = len(cells)
+        cols = len(cells[0])
+        for row in cells:
+            for cell in row:
+                for i, j in ((0, 1), (1, 0), (0, -1), (-1, 0)):
+                    cell_i = cell.i+i
+                    cell_j = cell.j+j
+                    if cell_i < 0 or cell_j < 0 or cell_i >= cols or cell_j >= rows:
+                        continue
+                    cell.neighbours.add(cells[cell_i][cell_j])
+
         self.add(self.batch)
 
         # for rhombus in self.rhombuses[0].subrhombuses:
@@ -320,16 +326,14 @@ class IsoMap(c.layer.ScrollableLayer):
         cell = self.find_cell(x, y)
         if not cell:
             return
-        # print(cell.i, cell.j)
-        # if button == mouse.LEFT:
-        self.add_road(cell)
-        # elif button == mouse.RIGHT:
-        #     if not self.start_cell:
-        self.start_cell = cell
-            # else:
-            #     self.calculate_path(self.start_cell, cell)
 
-    # @profile
+        self.add_road(cell)
+
+        # if not self.start_cell:
+        self.start_cell = cell
+        # else:
+        #     self.calculate_path(cell)
+
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         x, y = director.get_virtual_coordinates(*scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
@@ -341,7 +345,6 @@ class IsoMap(c.layer.ScrollableLayer):
         else:
             self.prev_cell = cell
         highlights.tile_highlight.position = cell.position
-        # self.add_road(cell)
         path = self.calculate_path(cell)
         for cell in highlights.roads[:]:
             highlights.roads.remove(cell)
@@ -427,64 +430,29 @@ class IsoMap(c.layer.ScrollableLayer):
         """
         Функция ищет путь от стартовой клетки к финишной.
         """
-
         start_cell = self.start_cell
-        opened_list = []
-        closed_list = []
+        closed_list = set()
+        opened_list = set()
         heap = []
-
-        orth_neighbours = [
-            (0, 1),
-            (1, 0),
-            (0, -1),
-            (-1, 0),
-        ]
-
-        current_cell = start_cell
-        opened_list.append(start_cell)
-        cols = len(cells)
-        rows = len(cells[0])
-
-        cells_counter = 0
-        do_search = True
-        while current_cell != finish_cell:
-            opened_list.remove(current_cell)
-            closed_list.append(current_cell)
-
-            # random.shuffle(orth_neighbours)
-            for i, j in orth_neighbours:
-                cell_i = current_cell.i+i
-                cell_j = current_cell.j+j
-                if cell_i < 0 or cell_j < 0 or cell_i >= cols or cell_j >= rows:
-                    continue
-
-                cell = cells[cell_i][cell_j]
-
-                if not cell.passable or cell in closed_list:
-                    continue
-
-                if cell not in opened_list:
-                    cell.parent_cell = current_cell
-
-                    cell.G = current_cell.G + 10
-
-                    # при поиске ближайшей выделенной клетки отключаем эвристику
-                    cell.H = (abs((finish_cell.i - cell_i) + abs(finish_cell.j - cell.j))) * 10
-                    cell.F = cell.G + cell.H
-
-                    opened_list.append(cell)
-                    heapq.heappush(heap, (cell.F, cells_counter, cell))
-                    cells_counter += 1
-                else:
-                    if cell.G > current_cell.G + 10:
-                        cell.parent_cell = current_cell
-                        cell.G = current_cell.G + 10
-                        cell.F = cell.G + cell.H
-
-            if not opened_list:
-                return []
-
+        opened_list.add(start_cell)
+        heap.append((0, 0, start_cell))
+        cells_counter = 1
+        while opened_list:
             current_cell = heapq.heappop(heap)[2]
+            if current_cell == finish_cell:
+                break
+            opened_list.remove(current_cell)
+            closed_list.add(current_cell)
+            for cell in current_cell.neighbours:
+                if cell not in closed_list and cell.passable:
+                    cell.H = abs(finish_cell.i - cell.i) + abs(finish_cell.j - cell.j)
+                    if cell not in opened_list:
+                        opened_list.add(cell)
+                        heapq.heappush(heap, (cell.H, cells_counter, cell))
+                        cells_counter += 1
+                    cell.parent_cell = current_cell
+            if not heap:
+                return []
 
         path = []
         current_cell = finish_cell
