@@ -1,5 +1,6 @@
 import cocos as c
 import shared_data
+import textures
 from shared_data import Modes
 from objects import Tree
 
@@ -10,7 +11,7 @@ class Highlight(c.layer.Layer):
 
     def __init__(self):
         super(Highlight, self).__init__()
-        self.tile_highlight = c.sprite.Sprite("highlight.png")
+        self.tile_highlight = c.sprite.Sprite(textures.HIGHLIGHT)
         self.tile_highlight.opacity = 0
         self.add(self.tile_highlight)
 
@@ -19,8 +20,9 @@ class Highlight(c.layer.Layer):
         self.batch = c.batch.BatchNode()
         self.add(self.batch)
 
-        self.highlights = {
+        self.highlight_children = {
             Modes.TREE: Tree(),
+            Modes.DELETE: c.sprite.Sprite(textures.HAMMER)
         }
 
     def __new__(cls):
@@ -31,7 +33,7 @@ class Highlight(c.layer.Layer):
     def show(self):
         self.clear_highlight()
         if shared_data.mode != Modes.ROAD:
-            self.tile_highlight.add(self.highlights[shared_data.mode])
+            self.tile_highlight.add(self.highlight_children[shared_data.mode])
         self.tile_highlight.opacity = 255
 
     def hide(self):

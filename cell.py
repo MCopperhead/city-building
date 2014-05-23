@@ -124,6 +124,7 @@ class Cell(c.sprite.Sprite, Rhombus):
         self.bottom = (x, y-15)
         self.type = cell_type
         self.neighbours = set()
+        self.child = None  # объект, который находится в object_layer и стоит на этой клетке. Например, дерево или дом.
 
         self.node = 0b0000
 

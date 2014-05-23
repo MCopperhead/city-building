@@ -1,19 +1,15 @@
 import cocos as c
 import heapq
+import textures
 import shared_data
-from shared_data import Modes
+from shared_data import Modes, MAP_SIZE, MAP_WIDTH, MAP_HEIGHT
 from cocos.director import director
 from cell import Rhombus, Cell
 from highlight_layer import Highlight
 from object_layer import ObjectLayer
 from scroller import Scroller
-from textures import GRASS_IMAGE
 from objects import Tree
-
-# Из-за динамической разбивки карты на более мелкие ромбы, размер карты должен быть степенью двойки
-MAP_SIZE = 64
-MAP_WIDTH = MAP_SIZE * 58
-MAP_HEIGHT = MAP_SIZE * 30
+from profilehooks import profile
 
 
 class IsoMap(c.layer.ScrollableLayer):
@@ -115,6 +111,8 @@ class IsoMap(c.layer.ScrollableLayer):
                         continue
                     cell.neighbours.add(self.cells[cell_i][cell_j])
 
+        self.marked_cells = []
+
         self.add(self.batch)
         self.add(self.object_layer)
         self.add(self.highlight)
@@ -134,12 +132,15 @@ class IsoMap(c.layer.ScrollableLayer):
 
         x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
-        if cell and cell.passable:
-            if shared_data.mode == Modes.ROAD:
-                self.add_road(cell)
-                self.start_cell = cell
+        if cell:
+            self.start_cell = cell
+            if shared_data.mode == Modes.DELETE:
+                self.mark_cells(cell)
             elif shared_data.mode == Modes.TREE:
                 self.add_tree(cell)
+            elif shared_data.mode == Modes.ROAD:
+                if cell.passable:
+                    self.add_road(cell)
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         if y < 150:
@@ -148,21 +149,49 @@ class IsoMap(c.layer.ScrollableLayer):
         cell = self.find_cell(x, y)
         if not cell:
             return
-
         self.highlight.tile_highlight.position = cell.position
         if shared_data.mode == Modes.ROAD:
-            if not self.start_cell:
-                return
-            if cell != self.current_cell:
-                self.current_cell = cell
-                self.draw_road_path(cell)
+            if self.start_cell and self.start_cell.passable:
+                if cell != self.current_cell:
+                    self.current_cell = cell
+                    self.draw_road_path(cell)
         elif shared_data.mode == Modes.TREE:
-            if cell.passable and cell.type != Cell.ROAD:
-                self.add_tree(cell)
+            self.add_tree(cell)
+        elif shared_data.mode == Modes.DELETE:
+            if self.start_cell:
+                self.mark_cells(cell)
 
     def on_mouse_release(self, x, y, button, modifiers):
         self.start_cell = None
         self.highlight.roads.clear()
+
+        if shared_data.mode == Modes.DELETE:
+            self.clear_cells()
+
+    def mark_cells(self, cell):
+        self.unmark_cells()
+        if self.start_cell.i < cell.i:
+            range_i = (self.start_cell.i, cell.i+1)
+        else:
+            range_i = (cell.i, self.start_cell.i+1)
+        if self.start_cell.j < cell.j:
+            range_j = (self.start_cell.j, cell.j+1)
+        else:
+            range_j = (cell.j, self.start_cell.j+1)
+        for i in range(*range_i):
+            for j in range(*range_j):
+                cell_to_mark = self.cells[i][j]
+                cell_to_mark.color = (255, 0, 0)
+                if cell_to_mark.child:
+                    cell_to_mark.child.color = (255, 0, 0)
+                self.marked_cells.append(cell_to_mark)
+
+    def unmark_cells(self):
+        for marked_cell in self.marked_cells:
+            marked_cell.color = (255, 255, 255)
+            if marked_cell.child:
+                marked_cell.child.color = (255, 255, 255)
+        self.marked_cells.clear()
 
     def find_cell(self, x, y):
         rhombuses = self.rhombuses
@@ -180,9 +209,21 @@ class IsoMap(c.layer.ScrollableLayer):
 
         return None
 
+    def clear_cells(self):
+        for cell in self.marked_cells:
+            if cell.child:
+                cell.child.kill()
+                cell.child = None
+            if cell.type == Cell.ROAD:
+                self.remove_road(cell)
+        self.unmark_cells()
+
     def add_tree(self, cell):
-        self.object_layer.batch.add(Tree(position=cell.position))
-        cell.passable = False
+        if cell.passable and cell.type != Cell.ROAD:
+            tree = Tree(position=cell.position)
+            self.object_layer.batch.add(tree)
+            cell.child = tree
+            cell.passable = False
 
     def draw_road_path(self, cell):
         path = self.calculate_path(cell)
@@ -237,7 +278,7 @@ class IsoMap(c.layer.ScrollableLayer):
     def remove_road(self, cell):
         cell.type = Cell.GROUND
         cell.node = 0b0000
-        cell.image = GRASS_IMAGE
+        cell.image = textures.GRASS_IMAGE
 
         left = self.cells[cell.i+1][cell.j]
         top = self.cells[cell.i][cell.j+1]
@@ -279,7 +320,6 @@ class IsoMap(c.layer.ScrollableLayer):
                             cell.G = current_cell.G + 1
                             cell.F = cell.G + cell.H
                             cell.parent_cell = current_cell
-
             if not heap:
                 return []
 

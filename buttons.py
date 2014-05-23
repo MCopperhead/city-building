@@ -36,9 +36,19 @@ class ButtonRoad(Button):
         highlight.show()
 
 
+class ButtonTree(Button):
+    def __init__(self):
+        super(ButtonTree, self).__init__("images/buttons/tree.png", position=(572, 75))
+
+    def on_release(self):
+        super(ButtonTree, self).on_release()
+        shared_data.mode = Modes.TREE
+        highlight.show()
+
+
 class ButtonCross(Button):
     def __init__(self):
-        super(ButtonCross, self).__init__("images/buttons/cross.png", position=(572, 75))
+        super(ButtonCross, self).__init__("images/buttons/cross.png", position=(632, 75))
 
     def on_release(self):
         super(ButtonCross, self).on_release()
@@ -46,11 +56,11 @@ class ButtonCross(Button):
         highlight.hide()
 
 
-class ButtonTree(Button):
+class ButtonHammer(Button):
     def __init__(self):
-        super(ButtonTree, self).__init__("images/buttons/tree.png", position=(632, 75))
+        super(ButtonHammer, self).__init__("images/buttons/hammer.png", position=(512, 31))
 
     def on_release(self):
-        super(ButtonTree, self).on_release()
-        shared_data.mode = Modes.TREE
+        super(ButtonHammer, self).on_release()
+        shared_data.mode = Modes.DELETE
         highlight.show()

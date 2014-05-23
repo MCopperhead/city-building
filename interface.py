@@ -1,6 +1,6 @@
 import cocos as c
 from cocos.director import director
-from buttons import ButtonRoad, ButtonCross, ButtonTree
+from buttons import ButtonRoad, ButtonCross, ButtonTree, ButtonHammer
 
 
 class Interface(c.layer.Layer):
@@ -19,7 +19,7 @@ class Interface(c.layer.Layer):
 
         # self.button_road = Button("images/buttons/road.png", position=(512, 75))
         # self.button_road = ButtonRoad()
-        self.buttons = {ButtonRoad(), ButtonCross(), ButtonTree()}
+        self.buttons = {ButtonRoad(), ButtonTree(), ButtonCross(), ButtonHammer()}
         for button in self.buttons:
             self.add(button)
         self.pressed_button = None

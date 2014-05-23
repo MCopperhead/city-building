@@ -12,3 +12,7 @@ for file in os.listdir("images/roads"):
 TREES = []
 for file in os.listdir("images/trees"):
     TREES.append(texture_bin.add(image.load("images/trees/"+file)))
+
+HAMMER = texture_bin.add(image.load("images/hammer.png"))
+
+HIGHLIGHT = texture_bin.add(image.load("images/highlight.png"))
