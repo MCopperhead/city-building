@@ -1,8 +1,10 @@
 import cocos as c
 import heapq
+import random
 from cocos.director import director
 from cell import Rhombus, Cell
 from highlight_layer import Highlight
+from object_layer import ObjectLayer
 from scroller import Scroller
 from textures import GRASS_IMAGE
 
@@ -17,13 +19,12 @@ class IsoMap(c.layer.ScrollableLayer):
 
     def __init__(self, atlas):
         super(IsoMap, self).__init__()
-        # center_x = MAP_WIDTH // 2
-        # print(center_x)
         self.batch = c.batch.BatchNode()
         self.cells = []
         self.start_cell = None
-        self.prev_cell = None
+        self.current_cell = None
         self.highlight = Highlight()
+        self.object_layer = ObjectLayer()
         self.scroller = Scroller()
 
         self.rhombuses = (
@@ -58,15 +59,8 @@ class IsoMap(c.layer.ScrollableLayer):
                     MAP_SIZE // 2)
         )
 
-        # rhombus_size = MAP_SIZE // 2
-        # co = 1
-        # rhombuses = self.rhombuses
-        # while rhombus_size > 10:
-        #     co += 1
         for rhombus in self.rhombuses:
             rhombus.subdivide()
-
-        # print(co)
 
         for row in range(MAP_SIZE):
             self.cells.append([])
@@ -74,14 +68,14 @@ class IsoMap(c.layer.ScrollableLayer):
                 cell = Cell(atlas, -row*29 + col*29, row*15 + col*15, row, col)
                 self.cells[row].append(cell)
                 self.batch.add(cell)
+                # if random.randint(1, 100) > 95:
+                #     self.object_layer.batch.add(c.sprite.Sprite("tree1.png", position=cell.position, anchor=(29, 15)))
+                #     cell.passable = False
 
                 size = MAP_SIZE
                 rhombuses = self.rhombuses
                 rhombus = None
                 while size > 16:
-                    # if rhombuses == self.rhombuses[2].subrhombuses[0].subrhombuses:
-                    #     pass
-
                     offset_i = 0 if not rhombus else rhombus.cells[0].i
                     offset_j = 0 if not rhombus else rhombus.cells[0].j
                     limit_row = row - offset_i
@@ -99,7 +93,6 @@ class IsoMap(c.layer.ScrollableLayer):
 
                     size //= 2
                     rhombuses = rhombus.subrhombuses
-
 
                 # highlights.add(c.text.Label(
                     # "{};{}".format((center_x-29) - row*29 + col*29, row*15 + col*15),
@@ -121,19 +114,10 @@ class IsoMap(c.layer.ScrollableLayer):
                     cell.neighbours.add(self.cells[cell_i][cell_j])
 
         self.add(self.batch)
-
-        # for rhombus in self.rhombuses[0].subrhombuses:
-        #     for cell in rhombus.cells:
-        #         self.add(c.sprite.Sprite("point.png", position=cell.position, color=(0, 255, 0)))
-
-        # for rhombus in self.rhombuses[0].subrhombuses:
-        # for rhombus in self.rhombuses:
-        #     for i in (rhombus.left, rhombus.top, rhombus.right, rhombus.bottom):
-        #         self.add(c.sprite.Sprite("point.png", position=i, color=(0, 255, 255)))
+        self.add(self.object_layer)
         self.add(self.highlight)
 
     def on_mouse_motion(self, x, y, dx, dy):
-        # return
         x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
         if not cell:
@@ -143,35 +127,27 @@ class IsoMap(c.layer.ScrollableLayer):
     def on_mouse_press(self, x, y, button, modifiers):
         x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
-        if not cell:
-            return
-
-        self.add_road(cell)
-
-        # if not self.start_cell:
-        self.start_cell = cell
-        # else:
-        #     self.calculate_path(cell)
+        if cell and cell.passable:
+            self.add_road(cell)
+            self.start_cell = cell
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
-        x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
-        cell = self.find_cell(x, y)
-        if not cell:
+        if not self.start_cell:
             return
 
-        if cell == self.prev_cell:
-            return
-        else:
-            self.prev_cell = cell
-        self.highlight.tile_highlight.position = cell.position
-        path = self.calculate_path(cell)
-        for cell in self.highlight.roads[:]:
-            self.highlight.roads.remove(cell)
-            self.remove_road(cell)
-        for cell in path:
-            if cell.type != Cell.ROAD:
-                self.highlight.roads.append(cell)
-                self.add_road(cell)
+        x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
+        cell = self.find_cell(x, y)
+        if cell and cell != self.current_cell:
+            self.current_cell = cell
+            self.highlight.tile_highlight.position = cell.position
+            path = self.calculate_path(cell)
+            for cell in self.highlight.roads[:]:
+                self.highlight.roads.remove(cell)
+                self.remove_road(cell)
+            for cell in path:
+                if cell.type != Cell.ROAD:
+                    self.highlight.roads.append(cell)
+                    self.add_road(cell)
 
     def on_mouse_release(self, x, y, button, modifiers):
         self.start_cell = None
