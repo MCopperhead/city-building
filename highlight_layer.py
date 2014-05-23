@@ -29,11 +29,15 @@ class Highlight(c.layer.Layer):
         return cls.instance
 
     def show(self):
+        self.clear_highlight()
         if shared_data.mode != Modes.ROAD:
             self.tile_highlight.add(self.highlights[shared_data.mode])
         self.tile_highlight.opacity = 255
 
     def hide(self):
+        self.clear_highlight()
+        self.tile_highlight.opacity = 0
+
+    def clear_highlight(self):
         for child in self.tile_highlight.get_children():
             child.kill()
-        self.tile_highlight.opacity = 0

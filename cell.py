@@ -128,7 +128,9 @@ class Cell(c.sprite.Sprite, Rhombus):
         self.node = 0b0000
 
         self.passable = True
+        self.G = 0
         self.H = 0
+        self.F = 0
         self.parent_cell = None
 
     def contains(self, x, y):
