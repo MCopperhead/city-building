@@ -16,3 +16,7 @@ for file in os.listdir("images/trees"):
 HAMMER = texture_bin.add(image.load("images/hammer.png"))
 
 HIGHLIGHT = texture_bin.add(image.load("images/highlight.png"))
+
+BUTTON_IMAGES = {}
+for file in os.listdir("images/buttons"):
+    BUTTON_IMAGES[file] = texture_bin.add(image.load("images/buttons/"+file))

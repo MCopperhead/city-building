@@ -2,7 +2,7 @@ import cocos as c
 import heapq
 import textures
 import shared_data
-from shared_data import Modes, MAP_SIZE, MAP_WIDTH, MAP_HEIGHT
+from shared_data import Modes, MAP_SIZE, MAP_WIDTH, MAP_HEIGHT, RHOMBUS_SIZE
 from cocos.director import director
 from cell import Rhombus, Cell
 from highlight_layer import Highlight
@@ -73,7 +73,7 @@ class IsoMap(c.layer.ScrollableLayer):
                 size = MAP_SIZE
                 rhombuses = self.rhombuses
                 rhombus = None
-                while size > 16:
+                while size > RHOMBUS_SIZE:
                     offset_i = 0 if not rhombus else rhombus.cells[0].i
                     offset_j = 0 if not rhombus else rhombus.cells[0].j
                     limit_row = row - offset_i

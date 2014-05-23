@@ -1,6 +1,7 @@
 import cocos as c
 from ctypes import cdll
 from textures import ROAD_IMAGES
+from shared_data import RHOMBUS_SIZE
 triangle = cdll.LoadLibrary("triangle.so")
 
 
@@ -35,7 +36,7 @@ class Rhombus():
         """
         Рекурсивно делит ромб на 4 меньших ромба, а те 4 еще на 4 каждый и т.д.
         """
-        if self.size // 2 < 16:
+        if self.size // 2 < RHOMBUS_SIZE:
             return
 
         width = self.width
