@@ -21,14 +21,14 @@ class Scroller(c.layer.ScrollingManager):
     def step(self, dt):
         k = self.keyboard
         if k[key.RIGHT]:
-            self.cam_pos[0] += 32
+            self.cam_pos[0] += 58
             self.force_focus(*self.cam_pos)
         elif k[key.LEFT]:
-            self.cam_pos[0] -= 32
+            self.cam_pos[0] -= 58
             self.force_focus(*self.cam_pos)
         elif k[key.UP]:
-            self.cam_pos[1] += 32
+            self.cam_pos[1] += 30
             self.force_focus(*self.cam_pos)
         elif k[key.DOWN]:
-            self.cam_pos[1] -= 32
+            self.cam_pos[1] -= 30
             self.force_focus(*self.cam_pos)

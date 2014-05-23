@@ -1,6 +1,7 @@
 import cocos as c
 import heapq
-import random
+import shared_data
+from shared_data import Modes
 from cocos.director import director
 from cell import Rhombus, Cell
 from highlight_layer import Highlight
@@ -118,6 +119,8 @@ class IsoMap(c.layer.ScrollableLayer):
         self.add(self.highlight)
 
     def on_mouse_motion(self, x, y, dx, dy):
+        if y < 150:
+            return
         x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
         if not cell:
@@ -125,21 +128,29 @@ class IsoMap(c.layer.ScrollableLayer):
         self.highlight.tile_highlight.position = cell.position
 
     def on_mouse_press(self, x, y, button, modifiers):
-        x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
-        cell = self.find_cell(x, y)
-        if cell and cell.passable:
-            self.add_road(cell)
-            self.start_cell = cell
-
-    def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
-        if not self.start_cell:
+        if y < 150:
             return
 
         x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
-        if cell and cell != self.current_cell:
+        if cell and cell.passable and shared_data.mode == Modes.ROAD:
+            self.add_road(cell)
+            self.start_cell = cell
+
+    def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
+        if y < 150:
+            return
+        x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
+        cell = self.find_cell(x, y)
+        if not cell:
+            return
+
+        self.highlight.tile_highlight.position = cell.position
+        if not self.start_cell:
+            return
+
+        if cell != self.current_cell:
             self.current_cell = cell
-            self.highlight.tile_highlight.position = cell.position
             path = self.calculate_path(cell)
             for cell in self.highlight.roads[:]:
                 self.highlight.roads.remove(cell)
