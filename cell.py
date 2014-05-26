@@ -1,7 +1,7 @@
 import cocos as c
 import sys
 from ctypes import cdll
-from textures import ROAD_IMAGES
+import textures
 from shared_data import RHOMBUS_SIZE
 if sys.platform.startswith("linux"):
     triangle = cdll.LoadLibrary("triangle.so")
@@ -100,22 +100,22 @@ class Cell(c.sprite.Sprite, Rhombus):
     NODE_BOTTOM = 0b0001
 
     NODES = {
-        0b0000: ROAD_IMAGES["road_tile.png"],
-        0b0001: ROAD_IMAGES["road_tile.png"],
-        0b0010: ROAD_IMAGES["road_tile_90.png"],
-        0b0011: ROAD_IMAGES["roadturn1.png"],
-        0b0100: ROAD_IMAGES["road_tile.png"],
-        0b0101: ROAD_IMAGES["road_tile.png"],
-        0b0110: ROAD_IMAGES["roadturn2.png"],
-        0b0111: ROAD_IMAGES["crossroad4.png"],
-        0b1000: ROAD_IMAGES["road_tile_90.png"],
-        0b1001: ROAD_IMAGES["roadturn3.png"],
-        0b1010: ROAD_IMAGES["road_tile_90.png"],
-        0b1011: ROAD_IMAGES["crossroad5.png"],
-        0b1100: ROAD_IMAGES["roadturn4.png"],
-        0b1101: ROAD_IMAGES["crossroad3.png"],
-        0b1110: ROAD_IMAGES["crossroad2.png"],
-        0b1111: ROAD_IMAGES["crossroad1.png"],
+        0b0000: textures.ROAD_IMAGES["road_tile.png"],
+        0b0001: textures.ROAD_IMAGES["road_tile.png"],
+        0b0010: textures.ROAD_IMAGES["road_tile_90.png"],
+        0b0011: textures.ROAD_IMAGES["roadturn1.png"],
+        0b0100: textures.ROAD_IMAGES["road_tile.png"],
+        0b0101: textures.ROAD_IMAGES["road_tile.png"],
+        0b0110: textures.ROAD_IMAGES["roadturn2.png"],
+        0b0111: textures.ROAD_IMAGES["crossroad4.png"],
+        0b1000: textures.ROAD_IMAGES["road_tile_90.png"],
+        0b1001: textures.ROAD_IMAGES["roadturn3.png"],
+        0b1010: textures.ROAD_IMAGES["road_tile_90.png"],
+        0b1011: textures.ROAD_IMAGES["crossroad5.png"],
+        0b1100: textures.ROAD_IMAGES["roadturn4.png"],
+        0b1101: textures.ROAD_IMAGES["crossroad3.png"],
+        0b1110: textures.ROAD_IMAGES["crossroad2.png"],
+        0b1111: textures.ROAD_IMAGES["crossroad1.png"],
     }
 
     def __init__(self, cell_image, x, y, i, j, cell_type=GROUND):
@@ -129,7 +129,7 @@ class Cell(c.sprite.Sprite, Rhombus):
         self.top = (x, y+15)
         self.bottom = (x, y-15)
         self.type = cell_type
-        self.neighbours = set()
+        self.neighbours = []
         self.child = None  # объект, который находится в object_layer и стоит на этой клетке. Например, дерево или дом.
 
         self.node = 0b0000
@@ -142,3 +142,43 @@ class Cell(c.sprite.Sprite, Rhombus):
 
     def contains(self, x, y):
         return Rhombus.contains(self, x, y)
+
+    def add_road(self):
+        self.type = Cell.ROAD
+        self.node = 0b0000
+
+        for index, neighbour in enumerate(self.neighbours):
+            if neighbour.type == Cell.ROAD:
+                if index == 0:
+                    self.node |= Cell.NODE_LEFT
+                elif index == 1:
+                    self.node |= Cell.NODE_TOP
+                elif index == 2:
+                    self.node |= Cell.NODE_RIGHT
+                elif index == 3:
+                    self.node |= Cell.NODE_BOTTOM
+
+                neighbour.change_road()
+        self.image = Cell.NODES[self.node]
+
+    def change_road(self):
+        self.node = 0b0000
+        for index, neighbour in enumerate(self.neighbours):
+            if neighbour.type == Cell.ROAD:
+                if index == 0:
+                    self.node |= Cell.NODE_LEFT
+                elif index == 1:
+                    self.node |= Cell.NODE_TOP
+                elif index == 2:
+                    self.node |= Cell.NODE_RIGHT
+                elif index == 3:
+                    self.node |= Cell.NODE_BOTTOM
+        self.image = Cell.NODES[self.node]
+
+    def remove_road(self):
+        self.type = Cell.GROUND
+        self.node = 0b0000
+        self.image = textures.GRASS_IMAGE
+        for index, neighbour in enumerate(self.neighbours):
+            if neighbour.type == Cell.ROAD:
+                neighbour.change_road()

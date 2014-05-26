@@ -104,12 +104,12 @@ class IsoMap(c.layer.ScrollableLayer):
         cols = len(self.cells[0])
         for row in self.cells:
             for cell in row:
-                for i, j in ((0, 1), (1, 0), (0, -1), (-1, 0)):
+                for i, j in ((1, 0), (0, 1), (-1, 0), (0, -1)):
                     cell_i = cell.i+i
                     cell_j = cell.j+j
                     if cell_i < 0 or cell_j < 0 or cell_i >= cols or cell_j >= rows:
                         continue
-                    cell.neighbours.add(self.cells[cell_i][cell_j])
+                    cell.neighbours.append(self.cells[cell_i][cell_j])
 
         self.marked_cells = []
         self.pillar_cell = None
@@ -142,7 +142,7 @@ class IsoMap(c.layer.ScrollableLayer):
                 self.add_object(cell, Tree)
             elif shared_data.mode == Modes.ROAD:
                 if cell.passable:
-                    self.add_road(cell)
+                    cell.add_road()
             elif shared_data.mode == Modes.HOUSING:
                 self.add_object(cell, House, building=True)
             elif shared_data.mode == Modes.PILLAR:
@@ -242,7 +242,7 @@ class IsoMap(c.layer.ScrollableLayer):
                 cell.child = None
                 cell.passable = True
             if cell.type == Cell.ROAD:
-                self.remove_road(cell)
+                cell.remove_road()
         self.unmark_cells()
 
     def add_object(self, cell, object_class, building=False):
@@ -261,64 +261,12 @@ class IsoMap(c.layer.ScrollableLayer):
         path = self.calculate_path(cell)
         for cell in self.highlight.roads[:]:
             self.highlight.roads.remove(cell)
-            self.remove_road(cell)
+            cell.remove_road()
         # пропускаем стартовую клетку, так как дорога туда уже добавилась при нажатии кнопки
         for cell in path[1:]:
             if cell.type != Cell.ROAD:
                 self.highlight.roads.append(cell)
-                self.add_road(cell)
-
-    def add_road(self, cell):
-        cell.type = Cell.ROAD
-        cell.node = 0b0000
-
-        left = self.cells[cell.i+1][cell.j]
-        top = self.cells[cell.i][cell.j+1]
-        right = self.cells[cell.i-1][cell.j]
-        bottom = self.cells[cell.i][cell.j-1]
-
-        for index, neighbour in enumerate((left, top, right, bottom)):
-            if neighbour.type == Cell.ROAD:
-                if index == 0:
-                    cell.node |= Cell.NODE_LEFT
-                elif index == 1:
-                    cell.node |= Cell.NODE_TOP
-                elif index == 2:
-                    cell.node |= Cell.NODE_RIGHT
-                elif index == 3:
-                    cell.node |= Cell.NODE_BOTTOM
-
-                self.change_road(neighbour)
-        cell.image = Cell.NODES[cell.node]
-
-    def change_road(self, cell):
-        cell.node = 0b0000
-        n_left = self.cells[cell.i+1][cell.j]
-        n_top = self.cells[cell.i][cell.j+1]
-        n_right = self.cells[cell.i-1][cell.j]
-        n_bottom = self.cells[cell.i][cell.j-1]
-        if n_left.type == Cell.ROAD:
-            cell.node |= Cell.NODE_LEFT
-        if n_top.type == Cell.ROAD:
-            cell.node |= Cell.NODE_TOP
-        if n_right.type == Cell.ROAD:
-            cell.node |= Cell.NODE_RIGHT
-        if n_bottom.type == Cell.ROAD:
-            cell.node |= Cell.NODE_BOTTOM
-        cell.image = Cell.NODES[cell.node]
-
-    def remove_road(self, cell):
-        cell.type = Cell.GROUND
-        cell.node = 0b0000
-        cell.image = textures.GRASS_IMAGE
-
-        left = self.cells[cell.i+1][cell.j]
-        top = self.cells[cell.i][cell.j+1]
-        right = self.cells[cell.i-1][cell.j]
-        bottom = self.cells[cell.i][cell.j-1]
-        for index, neighbour in enumerate((left, top, right, bottom)):
-            if neighbour.type == Cell.ROAD:
-                self.change_road(neighbour)
+                cell.add_road()
 
     def calculate_path(self, finish_cell):
         """
