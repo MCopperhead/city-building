@@ -114,9 +114,13 @@ class IsoMap(c.layer.ScrollableLayer):
         self.marked_cells = []
         self.pillar_cell = None
 
+
         self.add(self.batch)
         self.add(self.object_layer)
         self.add(self.highlight)
+
+        self.buildings_queue = []
+        self.schedule_interval(self.process_buildings_queue, 1)
 
     def on_mouse_motion(self, x, y, dx, dy):
         if y < 150:
@@ -183,11 +187,22 @@ class IsoMap(c.layer.ScrollableLayer):
             if y > 150:
                 self.calculate_buildings_availability()
         elif shared_data.mode == Modes.HOUSING:
-            if y > 150:
-                self.calculate_buildings_availability()
+            self.calculate_buildings_availability()
+            for building in self.object_layer.buildings:
+                if isinstance(building, House) and building.connected and not building.is_full():
+                    self.buildings_queue.append(building)
         elif shared_data.mode == Modes.PILLAR:
             if y > 150:
                 self.calculate_buildings_availability()
+
+    def process_buildings_queue(self, dt):
+        if self.buildings_queue:
+            building = self.buildings_queue[0]
+            building.population += 1
+            path = self.calculate_path(building.cell, self.pillar_cell, only_roads=True)
+            self.object_layer.summon_creature(building, path)
+            if building.is_full():
+                self.buildings_queue.remove(building)
 
     def mark_cells(self, cell):
         self.unmark_cells()
@@ -234,9 +249,8 @@ class IsoMap(c.layer.ScrollableLayer):
         for cell in self.marked_cells:
             if cell == self.pillar_cell:
                 self.pillar_cell = None
-            if cell in self.building_cells:
-                self.building_cells.remove(cell)
             if cell.child:
+                self.object_layer.buildings.remove(cell.child)
                 cell.child.kill()
                 cell.child = None
                 cell.passable = True
@@ -255,11 +269,12 @@ class IsoMap(c.layer.ScrollableLayer):
                 self.highlight.roads.append(cell)
                 cell.add_road()
 
-    def calculate_path(self, finish_cell):
+    def calculate_path(self, finish_cell, start_cell=None, only_roads=False):
         """
         Функция ищет путь от стартовой клетки к финишной.
         """
-        start_cell = self.start_cell
+        if not start_cell:
+            start_cell = self.start_cell
         closed_list = set()
         opened_list = set()
         heap = []
@@ -273,7 +288,10 @@ class IsoMap(c.layer.ScrollableLayer):
             opened_list.remove(current_cell)
             closed_list.add(current_cell)
             for cell in current_cell.neighbours:
-                if cell not in closed_list and cell.passable:
+                if cell == finish_cell or (cell not in closed_list and cell.passable):
+                    if only_roads and cell.type != Cell.ROAD and cell != finish_cell:
+                        closed_list.add(cell)
+                        continue
                     if cell not in opened_list:
                         cell.G = current_cell.G + 1
                         cell.H = abs(finish_cell.i - cell.i) + abs(finish_cell.j - cell.j)

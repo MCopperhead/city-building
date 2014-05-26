@@ -24,3 +24,5 @@ for file in os.listdir("images/buttons"):
 BUILDINGS = {}
 for file in os.listdir("images/buildings"):
     BUILDINGS[file] = texture_bin.add(image.load("images/buildings/"+file))
+
+TEST_BALL = texture_bin.add(image.load("images/ball.png"))

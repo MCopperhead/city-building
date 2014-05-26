@@ -1,6 +1,7 @@
 import cocos as c
 from cell import Cell
 from shared_data import MAP_SIZE
+from objects import TestBall
 
 
 class ObjectLayer(c.layer.ScrollableLayer):
@@ -18,6 +19,13 @@ class ObjectLayer(c.layer.ScrollableLayer):
             cell.child = obj
             cell.passable = False
             if building:
-                self.buildings.add(cell)
-            return True
-        return False
+                self.buildings.add(obj)
+                obj.cell = cell
+            return obj
+        return None
+
+    def summon_creature(self, house, path):
+        creature = TestBall(position=self.parent.pillar_cell.position)
+        creature.house = house
+        self.batch.add(creature, z=100)
+        creature.move(path)
