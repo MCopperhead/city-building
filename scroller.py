@@ -20,7 +20,6 @@ class Scroller(c.layer.ScrollingManager):
 
     def step(self, dt):
         k = self.keyboard
-
         if k[key.RIGHT]:
             self.cam_pos[0] += 58
             self.force_focus(*self.cam_pos)

@@ -8,8 +8,8 @@ from cell import Rhombus, Cell
 from highlight_layer import Highlight
 from object_layer import ObjectLayer
 from scroller import Scroller
-from objects import Tree
-from profilehooks import profile
+from objects import Tree, House
+# from profilehooks import profile
 
 
 class IsoMap(c.layer.ScrollableLayer):
@@ -137,10 +137,12 @@ class IsoMap(c.layer.ScrollableLayer):
             if shared_data.mode == Modes.DELETE:
                 self.mark_cells(cell)
             elif shared_data.mode == Modes.TREE:
-                self.add_tree(cell)
+                self.add_object(cell, Tree)
             elif shared_data.mode == Modes.ROAD:
                 if cell.passable:
                     self.add_road(cell)
+            elif shared_data.mode == Modes.HOUSING:
+                self.add_object(cell, House)
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         if y < 150:
@@ -151,12 +153,14 @@ class IsoMap(c.layer.ScrollableLayer):
             return
         self.highlight.tile_highlight.position = cell.position
         if shared_data.mode == Modes.ROAD:
-            if self.start_cell and self.start_cell.passable:
+            if self.start_cell and self.start_cell.passable and cell.passable:
                 if cell != self.current_cell:
                     self.current_cell = cell
                     self.draw_road_path(cell)
         elif shared_data.mode == Modes.TREE:
-            self.add_tree(cell)
+            self.add_object(cell, Tree)
+        elif shared_data.mode == Modes.HOUSING:
+            self.add_object(cell, House)
         elif shared_data.mode == Modes.DELETE:
             if self.start_cell:
                 self.mark_cells(cell)
@@ -218,11 +222,12 @@ class IsoMap(c.layer.ScrollableLayer):
                 self.remove_road(cell)
         self.unmark_cells()
 
-    def add_tree(self, cell):
+    def add_object(self, cell, object_class):
         if cell.passable and cell.type != Cell.ROAD:
-            tree = Tree(position=cell.position)
-            self.object_layer.batch.add(tree)
-            cell.child = tree
+            obj = object_class(position=cell.position)
+            z = 2*MAP_SIZE - cell.i - cell.j
+            self.object_layer.batch.add(obj, z=z)
+            cell.child = obj
             cell.passable = False
 
     def draw_road_path(self, cell):

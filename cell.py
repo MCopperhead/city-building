@@ -1,8 +1,14 @@
 import cocos as c
+import sys
 from ctypes import cdll
 from textures import ROAD_IMAGES
 from shared_data import RHOMBUS_SIZE
-triangle = cdll.LoadLibrary("triangle.so")
+if sys.platform.startswith("linux"):
+    triangle = cdll.LoadLibrary("triangle.so")
+elif sys.platform.startswith("win"):
+    triangle = cdll.LoadLibrary("triangle.dll")
+else:
+    triangle = None
 
 
 class Rhombus():
@@ -17,20 +23,19 @@ class Rhombus():
         self.cells = []
         self.subrhombuses = ()
 
-    # @profile
     def contains(self, x, y):
-        # Пока оставил это на случай, если не удастся скомпилировать С-шную библиотеку под винду
-        # for x1, y1, x2, y2, x3, y3 in (self.left+self.top+self.right, self.left+self.bottom+self.right):
-        #     s = abs(x2*y3-x3*y2-x1*y3+x3*y1+x1*y2-x2*y1)
-        #     s1 = abs(x2*y3-x3*y2-x*y3+x3*y+x*y2-x2*y)
-        #     s2 = abs(x*y3-x3*y-x1*y3+x3*y1+x1*y-x*y1)
-        #     s3 = abs(x2*y-x*y2-x1*y+x*y1+x1*y2-x2*y1)
-        #
-        #     if s == s1+s2+s3:
-        #         return True
-
-        # return False
-        return triangle.contains(int(x), int(y), *(self.left+self.top+self.right+self.left+self.bottom+self.right))
+        if triangle:
+            return triangle.contains(int(x), int(y), *(self.left+self.top+self.right+self.left+self.bottom+self.right))
+        else:
+            # Если нет скомпилированной библиотеки под текущую ОС - используем медленную питоновую реализацию
+            for x1, y1, x2, y2, x3, y3 in (self.left+self.top+self.right, self.left+self.bottom+self.right):
+                s = abs(x2*y3-x3*y2-x1*y3+x3*y1+x1*y2-x2*y1)
+                s1 = abs(x2*y3-x3*y2-x*y3+x3*y+x*y2-x2*y)
+                s2 = abs(x*y3-x3*y-x1*y3+x3*y1+x1*y-x*y1)
+                s3 = abs(x2*y-x*y2-x1*y+x*y1+x1*y2-x2*y1)
+                if s == s1+s2+s3:
+                    return True
+            return False
 
     def subdivide(self):
         """

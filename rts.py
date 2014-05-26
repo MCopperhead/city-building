@@ -7,9 +7,14 @@ from interface import Interface
 from scroller import Scroller
 from textures import GRASS_IMAGE
 
-level = IsoMap(GRASS_IMAGE)
-scroller = Scroller()
-scroller.add(level)
-scene = c.scene.Scene(scroller, Interface())
-director.run(scene)
+
+def main():
+    level = IsoMap(GRASS_IMAGE)
+    scroller = Scroller()
+    scroller.add(level)
+    scene = c.scene.Scene(scroller, Interface())
+    director.run(scene)
+
+if __name__ == '__main__':
+    main()
 

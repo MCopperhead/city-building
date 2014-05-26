@@ -67,3 +67,13 @@ class ButtonHammer(Button):
         super(ButtonHammer, self).on_release()
         shared_data.mode = Modes.DELETE
         highlight.show()
+
+
+class ButtonHouse(Button):
+    def __init__(self):
+        super(ButtonHouse, self).__init__("house.png", position=(572, 31))
+
+    def on_release(self):
+        super(ButtonHouse, self).on_release()
+        shared_data.mode = Modes.HOUSING
+        highlight.show()
