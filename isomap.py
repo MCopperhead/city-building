@@ -113,7 +113,6 @@ class IsoMap(c.layer.ScrollableLayer):
 
         self.marked_cells = []
         self.pillar_cell = None
-        self.building_cells = set()
 
         self.add(self.batch)
         self.add(self.object_layer)
@@ -139,15 +138,15 @@ class IsoMap(c.layer.ScrollableLayer):
             if shared_data.mode == Modes.DELETE:
                 self.mark_cells(cell)
             elif shared_data.mode == Modes.TREE:
-                self.add_object(cell, Tree)
+                self.object_layer.add_object(cell, Tree)
             elif shared_data.mode == Modes.ROAD:
                 if cell.passable:
                     cell.add_road()
             elif shared_data.mode == Modes.HOUSING:
-                self.add_object(cell, House, building=True)
+                self.object_layer.add_object(cell, House, building=True)
             elif shared_data.mode == Modes.PILLAR:
                 if not self.pillar_cell:
-                    if self.add_object(cell, Pillar):
+                    if self.object_layer.add_object(cell, Pillar):
                         self.pillar_cell = cell
                         cell.type = Cell.ROAD
 
@@ -165,9 +164,9 @@ class IsoMap(c.layer.ScrollableLayer):
                     self.current_cell = cell
                     self.draw_road_path(cell)
         elif shared_data.mode == Modes.TREE:
-            self.add_object(cell, Tree)
+            self.object_layer.add_object(cell, Tree)
         elif shared_data.mode == Modes.HOUSING:
-            self.add_object(cell, House, building=True)
+            self.object_layer.add_object(cell, House, building=True)
         elif shared_data.mode == Modes.DELETE:
             if self.start_cell:
                 self.mark_cells(cell)
@@ -245,18 +244,6 @@ class IsoMap(c.layer.ScrollableLayer):
                 cell.remove_road()
         self.unmark_cells()
 
-    def add_object(self, cell, object_class, building=False):
-        if cell.passable and cell.type != Cell.ROAD:
-            obj = object_class(position=cell.position)
-            z = 2*MAP_SIZE - cell.i - cell.j
-            self.object_layer.batch.add(obj, z=z)
-            cell.child = obj
-            cell.passable = False
-            if building:
-                self.building_cells.add(cell)
-            return True
-        return False
-
     def draw_road_path(self, cell):
         path = self.calculate_path(cell)
         for cell in self.highlight.roads[:]:
@@ -300,6 +287,8 @@ class IsoMap(c.layer.ScrollableLayer):
                             cell.G = current_cell.G + 1
                             cell.F = cell.G + cell.H
                             cell.parent_cell = current_cell
+        else:
+            return []
 
         path = []
         current_cell = finish_cell
@@ -316,8 +305,8 @@ class IsoMap(c.layer.ScrollableLayer):
         """
         Проверяет какие здания соединены дорогой с Колонной.
         """
-        for cell in self.building_cells:
-            cell.child.connected = False
+        for building in self.object_layer.buildings:
+            building.connected = False
 
         start_cell = self.pillar_cell
         if not start_cell:
@@ -337,8 +326,8 @@ class IsoMap(c.layer.ScrollableLayer):
                         cell.child.connected = True
                         closed_list.add(cell)
 
-        for cell in self.building_cells:
-            if cell.child.connected:
-                cell.child.color = (0, 255, 0)
+        for building in self.object_layer.buildings:
+            if building.connected:
+                building.color = (0, 255, 0)
             else:
-                cell.child.color = (255, 0, 0)
+                building.color = (255, 0, 0)
