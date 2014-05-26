@@ -38,10 +38,10 @@ class Pillar(OrderedSprite):
 
 class Building(OrderedSprite):
     # Все здания должны соединяться дорогами с центральной Колонной.
+    # Если здание не соединено - оно не работает.
     def __init__(self, *args, **kwargs):
         super(Building, self).__init__(*args, **kwargs)
-        # TODO: когда создается или удаляется дорога, от центральной колонны волновым алгоритмом по дорогам проверяется доступность всех зданий
-        self.available = False
+        self.connected = False
 
 
 class House(Building):

@@ -147,8 +147,9 @@ class IsoMap(c.layer.ScrollableLayer):
                 self.add_object(cell, House, building=True)
             elif shared_data.mode == Modes.PILLAR:
                 if not self.pillar_cell:
-                    self.pillar_cell = cell
-                    self.add_object(cell, Pillar)
+                    if self.add_object(cell, Pillar):
+                        self.pillar_cell = cell
+                        cell.type = Cell.ROAD
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         if y < 150:
@@ -182,7 +183,12 @@ class IsoMap(c.layer.ScrollableLayer):
         elif shared_data.mode == Modes.ROAD:
             if y > 150:
                 self.calculate_buildings_availability()
-
+        elif shared_data.mode == Modes.HOUSING:
+            if y > 150:
+                self.calculate_buildings_availability()
+        elif shared_data.mode == Modes.PILLAR:
+            if y > 150:
+                self.calculate_buildings_availability()
 
     def mark_cells(self, cell):
         self.unmark_cells()
@@ -234,6 +240,7 @@ class IsoMap(c.layer.ScrollableLayer):
             if cell.child:
                 cell.child.kill()
                 cell.child = None
+                cell.passable = True
             if cell.type == Cell.ROAD:
                 self.remove_road(cell)
         self.unmark_cells()
@@ -247,6 +254,8 @@ class IsoMap(c.layer.ScrollableLayer):
             cell.passable = False
             if building:
                 self.building_cells.add(cell)
+            return True
+        return False
 
     def draw_road_path(self, cell):
         path = self.calculate_path(cell)
@@ -360,7 +369,7 @@ class IsoMap(c.layer.ScrollableLayer):
         Проверяет какие здания соединены дорогой с Колонной.
         """
         for cell in self.building_cells:
-            cell.child.available = False
+            cell.child.connected = False
 
         start_cell = self.pillar_cell
         if not start_cell:
@@ -377,11 +386,11 @@ class IsoMap(c.layer.ScrollableLayer):
                     if cell.type == Cell.ROAD:
                         opened_list.add(cell)
                     elif isinstance(cell.child, Building):
-                        cell.child.available = True
+                        cell.child.connected = True
                         closed_list.add(cell)
 
         for cell in self.building_cells:
-            if cell.child.available:
+            if cell.child.connected:
                 cell.child.color = (0, 255, 0)
             else:
                 cell.child.color = (255, 0, 0)
