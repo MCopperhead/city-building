@@ -8,7 +8,7 @@ from cell import Rhombus, Cell
 from highlight_layer import Highlight
 from object_layer import ObjectLayer
 from scroller import Scroller
-from objects import Tree, House
+from objects import Tree, House, Pillar, Building
 # from profilehooks import profile
 
 
@@ -112,6 +112,8 @@ class IsoMap(c.layer.ScrollableLayer):
                     cell.neighbours.add(self.cells[cell_i][cell_j])
 
         self.marked_cells = []
+        self.pillar_cell = None
+        self.building_cells = set()
 
         self.add(self.batch)
         self.add(self.object_layer)
@@ -142,7 +144,11 @@ class IsoMap(c.layer.ScrollableLayer):
                 if cell.passable:
                     self.add_road(cell)
             elif shared_data.mode == Modes.HOUSING:
-                self.add_object(cell, House)
+                self.add_object(cell, House, building=True)
+            elif shared_data.mode == Modes.PILLAR:
+                if not self.pillar_cell:
+                    self.pillar_cell = cell
+                    self.add_object(cell, Pillar)
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         if y < 150:
@@ -160,7 +166,7 @@ class IsoMap(c.layer.ScrollableLayer):
         elif shared_data.mode == Modes.TREE:
             self.add_object(cell, Tree)
         elif shared_data.mode == Modes.HOUSING:
-            self.add_object(cell, House)
+            self.add_object(cell, House, building=True)
         elif shared_data.mode == Modes.DELETE:
             if self.start_cell:
                 self.mark_cells(cell)
@@ -171,6 +177,12 @@ class IsoMap(c.layer.ScrollableLayer):
 
         if shared_data.mode == Modes.DELETE:
             self.clear_cells()
+            if y > 150:
+                self.calculate_buildings_availability()
+        elif shared_data.mode == Modes.ROAD:
+            if y > 150:
+                self.calculate_buildings_availability()
+
 
     def mark_cells(self, cell):
         self.unmark_cells()
@@ -215,6 +227,10 @@ class IsoMap(c.layer.ScrollableLayer):
 
     def clear_cells(self):
         for cell in self.marked_cells:
+            if cell == self.pillar_cell:
+                self.pillar_cell = None
+            if cell in self.building_cells:
+                self.building_cells.remove(cell)
             if cell.child:
                 cell.child.kill()
                 cell.child = None
@@ -222,13 +238,15 @@ class IsoMap(c.layer.ScrollableLayer):
                 self.remove_road(cell)
         self.unmark_cells()
 
-    def add_object(self, cell, object_class):
+    def add_object(self, cell, object_class, building=False):
         if cell.passable and cell.type != Cell.ROAD:
             obj = object_class(position=cell.position)
             z = 2*MAP_SIZE - cell.i - cell.j
             self.object_layer.batch.add(obj, z=z)
             cell.child = obj
             cell.passable = False
+            if building:
+                self.building_cells.add(cell)
 
     def draw_road_path(self, cell):
         path = self.calculate_path(cell)
@@ -325,8 +343,6 @@ class IsoMap(c.layer.ScrollableLayer):
                             cell.G = current_cell.G + 1
                             cell.F = cell.G + cell.H
                             cell.parent_cell = current_cell
-            if not heap:
-                return []
 
         path = []
         current_cell = finish_cell
@@ -338,3 +354,34 @@ class IsoMap(c.layer.ScrollableLayer):
         path.reverse()
 
         return path
+
+    def calculate_buildings_availability(self):
+        """
+        Проверяет какие здания соединены дорогой с Колонной.
+        """
+        for cell in self.building_cells:
+            cell.child.available = False
+
+        start_cell = self.pillar_cell
+        if not start_cell:
+            return
+
+        closed_list = set()
+        opened_list = set()
+        opened_list.add(start_cell)
+        while opened_list:
+            current_cell = opened_list.pop()
+            closed_list.add(current_cell)
+            for cell in current_cell.neighbours:
+                if cell not in closed_list:
+                    if cell.type == Cell.ROAD:
+                        opened_list.add(cell)
+                    elif isinstance(cell.child, Building):
+                        cell.child.available = True
+                        closed_list.add(cell)
+
+        for cell in self.building_cells:
+            if cell.child.available:
+                cell.child.color = (0, 255, 0)
+            else:
+                cell.child.color = (255, 0, 0)

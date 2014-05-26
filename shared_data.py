@@ -4,6 +4,7 @@ class Modes():
     TREE = "tree"
     DELETE = "delete"
     HOUSING = "housing"
+    PILLAR = "pillar"
 
 
 mode = Modes.NORMAL

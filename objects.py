@@ -31,6 +31,27 @@ class Tree(OrderedSprite):
         super(Tree, self).__init__(choice(textures.TREES), anchor=(29, 15), **kwargs)
 
 
-class House(OrderedSprite):
+class Pillar(OrderedSprite):
     def __init__(self, **kwargs):
+        super(Pillar, self).__init__(textures.BUILDINGS["pillar.png"], anchor=(29, 15), **kwargs)
+
+
+class Building(OrderedSprite):
+    # Все здания должны соединяться дорогами с центральной Колонной.
+    def __init__(self, *args, **kwargs):
+        super(Building, self).__init__(*args, **kwargs)
+        # TODO: когда создается или удаляется дорога, от центральной колонны волновым алгоритмом по дорогам проверяется доступность всех зданий
+        self.available = False
+
+
+class House(Building):
+    def __init__(self, **kwargs):
+        # TODO: дома должны развиваться не сами, как в цезаре, а вручную.
+        # захотелось дом побольше - старые сносятся, новые строятся.
+        # Для постройки больших домов должны выполняться определенные требования.
         super(House, self).__init__(textures.BUILDINGS["house.png"], anchor=(29, 15), **kwargs)
+        self.population = 0
+        self.max_population = 4
+
+    def is_full(self):
+        return self.population == self.max_population

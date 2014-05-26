@@ -77,3 +77,13 @@ class ButtonHouse(Button):
         super(ButtonHouse, self).on_release()
         shared_data.mode = Modes.HOUSING
         highlight.show()
+
+
+class ButtonPillar(Button):
+    def __init__(self):
+        super(ButtonPillar, self).__init__("pillar.png", position=(632, 31))
+
+    def on_release(self):
+        super(ButtonPillar, self).on_release()
+        shared_data.mode = Modes.PILLAR
+        highlight.show()
