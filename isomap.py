@@ -187,15 +187,18 @@ class IsoMap(c.layer.ScrollableLayer):
                 self.calculate_buildings_availability()
         elif shared_data.mode == Modes.ROAD:
             if y > 150:
-                self.calculate_buildings_availability()
+                self.populate_buildings_queue()
         elif shared_data.mode == Modes.HOUSING:
-            self.calculate_buildings_availability()
-            for building in self.object_layer.buildings:
-                if isinstance(building, House) and building.connected and not building.is_full():
-                    self.buildings_queue.add(building)
+            self.populate_buildings_queue()
         elif shared_data.mode == Modes.PILLAR:
             if y > 150:
-                self.calculate_buildings_availability()
+                self.populate_buildings_queue()
+
+    def populate_buildings_queue(self):
+        self.calculate_buildings_availability()
+        for building in self.object_layer.buildings:
+            if isinstance(building, House) and building.connected and not building.is_full():
+                self.buildings_queue.add(building)
 
     def process_buildings_queue(self, dt):
         if self.buildings_queue:
@@ -349,8 +352,8 @@ class IsoMap(c.layer.ScrollableLayer):
                         cell.child.connected = True
                         closed_list.add(cell)
 
-        for building in self.object_layer.buildings:
-            if building.connected:
-                building.color = (0, 255, 0)
-            else:
-                building.color = (255, 0, 0)
+        # for building in self.object_layer.buildings:
+        #     if building.connected:
+        #         building.color = (0, 255, 0)
+        #     else:
+        #         building.color = (255, 0, 0)

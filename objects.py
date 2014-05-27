@@ -61,7 +61,7 @@ class House(Building):
 
 class TestCube(OrderedSprite):
     def __init__(self, **kwargs):
-        super(TestCube, self).__init__(textures.TEST_CUBE, anchor=(29, 15), **kwargs)
+        super(TestCube, self).__init__(textures.TEST_CUBE_ANIM, anchor=(29, 15), **kwargs)
 
     def move(self, path):
         action = c.actions.Delay(0)

@@ -43,7 +43,6 @@ class ObjectLayer(c.layer.ScrollableLayer):
             if building:
                 self.buildings.add(obj)
                 obj.cell = cell
-                self.add(c.text.Label(str(z), position=cell.position, color=(0, 0, 255, 255)))
             return obj
         return None
 
