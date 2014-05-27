@@ -71,3 +71,18 @@ class TestCube(OrderedSprite):
             action += c.actions.CallFunc(self.parent.change_z, self, z)
         action += c.actions.CallFunc(self.kill)
         self.do(action)
+
+
+class Wall(OrderedSprite):
+    def __init__(self, **kwargs):
+        super(Wall, self).__init__(textures.BUILDINGS["wall.png"], anchor=(29, 15), **kwargs)
+
+
+class Wall2(OrderedSprite):
+    def __init__(self, **kwargs):
+        super(Wall2, self).__init__(textures.BUILDINGS["wall2.png"], anchor=(29, 15), **kwargs)
+
+
+class Wall3(OrderedSprite):
+    def __init__(self, **kwargs):
+        super(Wall3, self).__init__(textures.BUILDINGS["wall3.png"], anchor=(29, 15), **kwargs)

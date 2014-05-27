@@ -2,7 +2,7 @@ import cocos as c
 import shared_data
 import textures
 from shared_data import Modes
-from objects import Tree, House, Pillar
+from objects import Tree, House, Pillar, Wall
 
 
 class Highlight(c.layer.Layer):
@@ -25,6 +25,7 @@ class Highlight(c.layer.Layer):
             Modes.DELETE: c.sprite.Sprite(textures.HAMMER),
             Modes.HOUSING: House(),
             Modes.PILLAR: Pillar(),
+            Modes.WALL: Wall(),
         }
 
     def __new__(cls):

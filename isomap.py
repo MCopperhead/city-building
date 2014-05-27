@@ -1,6 +1,7 @@
 import cocos as c
 import heapq
 import shared_data
+from pyglet.window import key
 from shared_data import Modes, MAP_SIZE, MAP_WIDTH, MAP_HEIGHT, RHOMBUS_SIZE
 from cocos.director import director
 from cell import Rhombus, Cell
@@ -8,7 +9,7 @@ from highlight_layer import Highlight
 from interface import Interface
 from object_layer import ObjectLayer
 from scroller import Scroller
-from objects import Tree, House, Pillar, Building
+from objects import Tree, House, Pillar, Building, Wall, Wall2, Wall3
 # from profilehooks import profile
 
 interface = Interface()
@@ -136,7 +137,6 @@ class IsoMap(c.layer.ScrollableLayer):
     def on_mouse_press(self, x, y, button, modifiers):
         if y < 150:
             return
-
         x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
         if cell:
@@ -155,6 +155,13 @@ class IsoMap(c.layer.ScrollableLayer):
                     if self.object_layer.add_object(cell, Pillar):
                         self.pillar_cell = cell
                         cell.type = Cell.ROAD
+            elif shared_data.mode == Modes.WALL:
+                if modifiers & key.MOD_SHIFT:
+                    self.object_layer.add_object(cell, Wall2)
+                elif modifiers & key.MOD_CTRL:
+                    self.object_layer.add_object(cell, Wall3)
+                else:
+                    self.object_layer.add_object(cell, Wall)
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         if y < 150:
@@ -281,6 +288,13 @@ class IsoMap(c.layer.ScrollableLayer):
         """
         Функция ищет путь от стартовой клетки к финишной.
         """
+        # TODO: добавить клеткам свойство level.
+        # это виртуальный уровень клетки над землей.
+        # При поиске пути вход на другой уровень возможен только через лестницу.
+        # То есть уровень текущей клетки сравнивается с уровнем проверяемой, и если у них уровни разные
+        # то проход тут невозможен. А у лестницы одновременно два уровня, то есть на неё можно наступать и с верхнего
+        # и с нижнего.
+
         if not start_cell:
             start_cell = self.start_cell
         closed_list = set()

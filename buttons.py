@@ -87,3 +87,13 @@ class ButtonPillar(Button):
         super(ButtonPillar, self).on_release()
         shared_data.mode = Modes.PILLAR
         highlight.show()
+
+
+class ButtonWall(Button):
+    def __init__(self):
+        super(ButtonWall, self).__init__("wall.png", position=(692, 31))
+
+    def on_release(self):
+        super(ButtonWall, self).on_release()
+        shared_data.mode = Modes.WALL
+        highlight.show()

@@ -1,6 +1,6 @@
 import cocos as c
 from cocos.director import director
-from buttons import ButtonRoad, ButtonCross, ButtonTree, ButtonHammer, ButtonHouse, ButtonPillar
+from buttons import ButtonRoad, ButtonCross, ButtonTree, ButtonHammer, ButtonHouse, ButtonPillar, ButtonWall
 
 
 class Interface(c.layer.Layer):
@@ -18,7 +18,8 @@ class Interface(c.layer.Layer):
         self._main_panel = c.sprite.Sprite("main_panel.png", position=(512, 75))
         self.add(self._main_panel)
 
-        self._buttons = {ButtonRoad(), ButtonTree(), ButtonCross(), ButtonHammer(), ButtonHouse(), ButtonPillar()}
+        self._buttons = {ButtonRoad(), ButtonTree(), ButtonCross(), ButtonHammer(), ButtonHouse(), ButtonPillar(),
+                         ButtonWall()}
         for button in self._buttons:
             self.add(button)
         self._pressed_button = None
