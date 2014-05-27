@@ -61,16 +61,10 @@ class House(Building):
 class TestBall(OrderedSprite):
     def __init__(self, **kwargs):
         super(TestBall, self).__init__(textures.TEST_BALL, **kwargs)
-        self.schedule_interval(self.check_moving, 1)
-        self.house = None
-
-    def check_moving(self, dt):
-        if not self.are_actions_running():
-            self.unschedule(self.check_moving)
-            self.kill()
 
     def move(self, path):
         action = c.actions.Delay(0)
         for cell in path:
             action += c.actions.MoveTo(cell.position, 1)
+        action += c.actions.CallFunc(self.kill)
         self.do(action)

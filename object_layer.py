@@ -26,6 +26,5 @@ class ObjectLayer(c.layer.ScrollableLayer):
 
     def summon_creature(self, house, path):
         creature = TestBall(position=self.parent.pillar_cell.position)
-        creature.house = house
         self.batch.add(creature, z=100)
         creature.move(path)

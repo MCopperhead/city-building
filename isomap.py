@@ -1,15 +1,17 @@
 import cocos as c
 import heapq
-import textures
 import shared_data
 from shared_data import Modes, MAP_SIZE, MAP_WIDTH, MAP_HEIGHT, RHOMBUS_SIZE
 from cocos.director import director
 from cell import Rhombus, Cell
 from highlight_layer import Highlight
+from interface import Interface
 from object_layer import ObjectLayer
 from scroller import Scroller
 from objects import Tree, House, Pillar, Building
 # from profilehooks import profile
+
+interface = Interface()
 
 
 class IsoMap(c.layer.ScrollableLayer):
@@ -113,13 +115,13 @@ class IsoMap(c.layer.ScrollableLayer):
 
         self.marked_cells = []
         self.pillar_cell = None
-
+        self.population = 0
 
         self.add(self.batch)
         self.add(self.object_layer)
         self.add(self.highlight)
 
-        self.buildings_queue = []
+        self.buildings_queue = set()
         self.schedule_interval(self.process_buildings_queue, 1)
 
     def on_mouse_motion(self, x, y, dx, dy):
@@ -190,19 +192,21 @@ class IsoMap(c.layer.ScrollableLayer):
             self.calculate_buildings_availability()
             for building in self.object_layer.buildings:
                 if isinstance(building, House) and building.connected and not building.is_full():
-                    self.buildings_queue.append(building)
+                    self.buildings_queue.add(building)
         elif shared_data.mode == Modes.PILLAR:
             if y > 150:
                 self.calculate_buildings_availability()
 
     def process_buildings_queue(self, dt):
         if self.buildings_queue:
-            building = self.buildings_queue[0]
+            building = self.buildings_queue.pop()
             building.population += 1
+            self.population += 1
+            interface.update_population(self.population)
             path = self.calculate_path(building.cell, self.pillar_cell, only_roads=True)
             self.object_layer.summon_creature(building, path)
-            if building.is_full():
-                self.buildings_queue.remove(building)
+            if not building.is_full():
+                self.buildings_queue.add(building)
 
     def mark_cells(self, cell):
         self.unmark_cells()
@@ -250,7 +254,8 @@ class IsoMap(c.layer.ScrollableLayer):
             if cell == self.pillar_cell:
                 self.pillar_cell = None
             if cell.child:
-                self.object_layer.buildings.remove(cell.child)
+                if isinstance(cell.child, Building):
+                    self.object_layer.buildings.remove(cell.child)
                 cell.child.kill()
                 cell.child = None
                 cell.passable = True
