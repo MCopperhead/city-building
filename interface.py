@@ -18,8 +18,6 @@ class Interface(c.layer.Layer):
         self._main_panel = c.sprite.Sprite("main_panel.png", position=(512, 75))
         self.add(self._main_panel)
 
-        # self.button_road = Button("images/buttons/road.png", position=(512, 75))
-        # self.button_road = ButtonRoad()
         self._buttons = {ButtonRoad(), ButtonTree(), ButtonCross(), ButtonHammer(), ButtonHouse(), ButtonPillar()}
         for button in self._buttons:
             self.add(button)
@@ -27,7 +25,6 @@ class Interface(c.layer.Layer):
 
         self._population = c.text.Label("Pop.: 0", position=(300, 75))
         self.add(self._population)
-        # self.buttons = {self.button_road}
 
     def __new__(cls):
         if cls.instance is None:

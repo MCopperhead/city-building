@@ -2,6 +2,7 @@ import cocos as c
 import textures
 from pyglet.graphics import OrderedGroup
 from random import choice
+from shared_data import MAP_SIZE
 
 
 class OrderedSprite(c.sprite.Sprite):
@@ -58,13 +59,15 @@ class House(Building):
         return self.population == self.max_population
 
 
-class TestBall(OrderedSprite):
+class TestCube(OrderedSprite):
     def __init__(self, **kwargs):
-        super(TestBall, self).__init__(textures.TEST_BALL, **kwargs)
+        super(TestCube, self).__init__(textures.TEST_CUBE, anchor=(29, 15), **kwargs)
 
     def move(self, path):
         action = c.actions.Delay(0)
-        for cell in path:
+        for cell in path[1:]:
             action += c.actions.MoveTo(cell.position, 1)
+            z = 2*MAP_SIZE - cell.i - cell.j
+            action += c.actions.CallFunc(self.parent.change_z, self, z)
         action += c.actions.CallFunc(self.kill)
         self.do(action)

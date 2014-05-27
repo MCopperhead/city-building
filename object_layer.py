@@ -1,13 +1,35 @@
 import cocos as c
 from cell import Cell
 from shared_data import MAP_SIZE
-from objects import TestBall
+from objects import TestCube
+
+
+class DynamicBatch(c.batch.BatchNode):
+    """
+    Батч, позволяющий менять z дочернего объекта на лету.
+    """
+    def change_z(self, child, z):
+        child.set_batch(None)
+        child.set_batch(self.batch, self.groups, z)
+
+        self.children = [(z_, c_) for (z_, c_) in self.children if c_ != child]
+        elem = z, child
+
+        lo = 0
+        hi = len(self.children)
+        a = self.children
+        while lo < hi:
+            mid = (lo+hi)//2
+            if z < a[mid][0]: hi = mid
+            else: lo = mid+1
+        self.children.insert(lo, elem)
 
 
 class ObjectLayer(c.layer.ScrollableLayer):
     def __init__(self):
         super(ObjectLayer, self).__init__()
-        self.batch = c.batch.BatchNode()
+        # self.batch = c.batch.BatchNode()
+        self.batch = DynamicBatch()
         self.add(self.batch)
         self.buildings = set()
 
@@ -21,10 +43,12 @@ class ObjectLayer(c.layer.ScrollableLayer):
             if building:
                 self.buildings.add(obj)
                 obj.cell = cell
+                self.add(c.text.Label(str(z), position=cell.position, color=(0, 0, 255, 255)))
             return obj
         return None
 
     def summon_creature(self, house, path):
-        creature = TestBall(position=self.parent.pillar_cell.position)
-        self.batch.add(creature, z=100)
+        creature = TestCube(position=self.parent.pillar_cell.position)
+        z = 2*MAP_SIZE - path[0].i - path[0].j
+        self.batch.add(creature, z=z)
         creature.move(path)
