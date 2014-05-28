@@ -3,7 +3,7 @@ import shared_data
 from pyglet import image
 from shared_data import Modes
 from highlight_layer import Highlight
-from textures import BUTTON_IMAGES
+from textures import BUTTON_IMAGES, WALLS
 
 highlight = Highlight()
 
@@ -90,10 +90,31 @@ class ButtonPillar(Button):
 
 
 class ButtonWall(Button):
-    def __init__(self):
-        super(ButtonWall, self).__init__("wall.png", position=(692, 31))
+    def __init__(self, index, **kwargs):
+        super(ButtonWall, self).__init__("wall{}.png".format(index), **kwargs)
+        self.index = index
 
     def on_release(self):
         super(ButtonWall, self).on_release()
-        shared_data.mode = Modes.WALL
+        shared_data.mode = Modes.WALL[self.index-1]
         highlight.show()
+
+
+class Switcher(c.sprite.Sprite):
+    def on_press(self):
+        self.parent.change_panel(self.type)
+
+    def on_release(self):
+        pass
+
+
+class SwitcherMain(Switcher):
+    def __init__(self):
+        super(SwitcherMain, self).__init__(BUTTON_IMAGES["switcher_main.png"], position=(512, 119))
+        self.type = "main"
+
+
+class SwitcherWall(Switcher):
+    def __init__(self):
+        super(SwitcherWall, self).__init__(BUTTON_IMAGES["switcher_wall.png"], position=(572, 119))
+        self.type = "wall"

@@ -9,7 +9,7 @@ from highlight_layer import Highlight
 from interface import Interface
 from object_layer import ObjectLayer
 from scroller import Scroller
-from objects import Tree, House, Pillar, Building, Wall, Wall2, Wall3
+from objects import Tree, House, Pillar, Building, Wall
 # from profilehooks import profile
 
 interface = Interface()
@@ -66,7 +66,7 @@ class IsoMap(c.layer.ScrollableLayer):
         for row in range(MAP_SIZE):
             self.cells.append([])
             for col in range(MAP_SIZE):
-                cell = Cell(atlas, -row*29 + col*29, row*15 + col*15, row, col)
+                cell = Cell(atlas, -row*30 + col*30, row*15 + col*15, row, col)
                 self.cells[row].append(cell)
                 self.batch.add(cell)
                 # if random.randint(1, 100) > 95:
@@ -155,13 +155,8 @@ class IsoMap(c.layer.ScrollableLayer):
                     if self.object_layer.add_object(cell, Pillar):
                         self.pillar_cell = cell
                         cell.type = Cell.ROAD
-            elif shared_data.mode == Modes.WALL:
-                if modifiers & key.MOD_SHIFT:
-                    self.object_layer.add_object(cell, Wall2)
-                elif modifiers & key.MOD_CTRL:
-                    self.object_layer.add_object(cell, Wall3)
-                else:
-                    self.object_layer.add_object(cell, Wall)
+            elif shared_data.mode in Modes.WALL:
+                self.object_layer.add_wall(cell, int(shared_data.mode[-1]))
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         if y < 150:

@@ -5,7 +5,7 @@ class Modes():
     DELETE = "delete"
     HOUSING = "housing"
     PILLAR = "pillar"
-    WALL = "wall"
+    WALL = ("wall1", "wall2", "wall3", "wall4", "wall5", "wall6", "wall7", "wall8")
 
 
 mode = Modes.NORMAL

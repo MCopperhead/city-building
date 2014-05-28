@@ -25,7 +25,6 @@ class Highlight(c.layer.Layer):
             Modes.DELETE: c.sprite.Sprite(textures.HAMMER),
             Modes.HOUSING: House(),
             Modes.PILLAR: Pillar(),
-            Modes.WALL: Wall(),
         }
 
     def __new__(cls):
@@ -35,7 +34,9 @@ class Highlight(c.layer.Layer):
 
     def show(self):
         self.clear_highlight()
-        if shared_data.mode != Modes.ROAD:
+        if shared_data.mode in Modes.WALL:
+            self.tile_highlight.add(Wall(int(shared_data.mode[-1])))
+        elif shared_data.mode != Modes.ROAD:
             self.tile_highlight.add(self.highlight_children[shared_data.mode])
         self.tile_highlight.opacity = 255
 

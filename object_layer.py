@@ -1,7 +1,7 @@
 import cocos as c
 from cell import Cell
 from shared_data import MAP_SIZE
-from objects import TestCube
+from objects import TestCube, Wall
 
 
 class DynamicBatch(c.batch.BatchNode):
@@ -45,6 +45,14 @@ class ObjectLayer(c.layer.ScrollableLayer):
                 obj.cell = cell
             return obj
         return None
+
+    def add_wall(self, cell, index):
+        if cell.passable and cell.type != Cell.ROAD:
+            z = 2*MAP_SIZE - cell.i - cell.j
+            self.batch.add(Wall(index, position=cell.position), z=z)
+            if index < 6:
+                print("ok")
+                cell.passable = False
 
     def summon_creature(self, house, path):
         creature = TestCube(position=self.parent.pillar_cell.position)
