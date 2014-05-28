@@ -19,6 +19,9 @@ BUILDINGS = {file: texture_bin.add(image.load("images/buildings/"+file)) for fil
 
 WALLS = {file: texture_bin.add(image.load("images/walls/"+file)) for file in os.listdir("images/walls/")}
 
+CELL_LEVEL_ADD = texture_bin.add(image.load("images/cell_level_add.png"))
+CELL_LEVEL_SUB = texture_bin.add(image.load("images/cell_level_sub.png"))
+
 CUBE_IMAGES = [image.load("images/animation/cubes/"+file) for file in os.listdir("images/animation/cubes/")]
 TEST_CUBE_ANIM = image.Animation.from_image_sequence(CUBE_IMAGES, 0.1)
 TEST_CUBE_ANIM.add_to_texture_bin(texture_bin)

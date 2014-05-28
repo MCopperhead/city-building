@@ -76,3 +76,8 @@ class TestCube(OrderedSprite):
 class Wall(OrderedSprite):
     def __init__(self, index, **kwargs):
         super(Wall, self).__init__(textures.WALLS["wall{}.png".format(index)], anchor=(29, 15), **kwargs)
+
+
+class Stairs(OrderedSprite):
+    def __init__(self, **kwargs):
+        super(Stairs, self).__init__(textures.WALLS["stairs.png"], anchor=(29, 15), **kwargs)

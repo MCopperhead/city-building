@@ -9,7 +9,7 @@ from highlight_layer import Highlight
 from interface import Interface
 from object_layer import ObjectLayer
 from scroller import Scroller
-from objects import Tree, House, Pillar, Building, Wall
+from objects import Tree, House, Pillar, Building, Stairs
 # from profilehooks import profile
 
 interface = Interface()
@@ -157,6 +157,27 @@ class IsoMap(c.layer.ScrollableLayer):
                         cell.type = Cell.ROAD
             elif shared_data.mode in Modes.WALL:
                 self.object_layer.add_wall(cell, int(shared_data.mode[-1]))
+            elif shared_data.mode == Modes.STAIRS:
+                self.object_layer.add_object(cell, Stairs)
+
+                # у клетки у основания лестницы и над ступенями добавляем дорогу,
+                # чтобы из лестницы нормально рисовалось продолжение дороги
+                top_cell = self.cells[cell.i+1][cell.j+1]
+                top_cell.add_road()
+                cell.add_road()
+
+                # добавляем клетки у основания лестницы и сверху друг другу в соседи, чтобы они были соединены при
+                # поиске пути
+                right_cell = self.cells[cell.i-1][cell.j]
+                left_cell = self.cells[cell.i+2][cell.j+1]
+                right_cell.neighbours.append(left_cell)
+                left_cell.neighbours.append(right_cell)
+                right_cell.level = -1
+
+            elif shared_data.mode == Modes.LEVEL[0]:
+                cell.level += 1
+            elif shared_data.mode == Modes.LEVEL[1]:
+                cell.level -= 1
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         if y < 150:
@@ -209,7 +230,7 @@ class IsoMap(c.layer.ScrollableLayer):
             self.population += 1
             interface.update_population(self.population)
             path = self.calculate_path(building.cell, self.pillar_cell, only_roads=True)
-            self.object_layer.summon_creature(building, path)
+            self.object_layer.summon_creature(path)
             if not building.is_full():
                 self.buildings_queue.add(building)
 
@@ -306,6 +327,9 @@ class IsoMap(c.layer.ScrollableLayer):
             closed_list.add(current_cell)
             for cell in current_cell.neighbours:
                 if cell == finish_cell or (cell not in closed_list and cell.passable):
+                    if cell.level != -1 and current_cell.level != -1:
+                        if cell.level != current_cell.level:
+                            continue
                     if only_roads and cell.type != Cell.ROAD and cell != finish_cell:
                         closed_list.add(cell)
                         continue

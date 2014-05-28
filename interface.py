@@ -2,7 +2,7 @@ import cocos as c
 import shared_data
 from cocos.director import director
 from buttons import ButtonRoad, ButtonCross, ButtonTree, ButtonHammer, ButtonHouse, ButtonPillar, SwitcherMain, \
-    SwitcherWall, ButtonWall
+    SwitcherWall, ButtonWall, ButtonLevelAdd, ButtonLevelSub, ButtonStairs
 
 
 class Interface(c.layer.Layer):
@@ -27,7 +27,7 @@ class Interface(c.layer.Layer):
         self._active_buttons = []
         self.buttons = {
             "main": (ButtonRoad(), ButtonTree(), ButtonCross(), ButtonHammer(), ButtonHouse(), ButtonPillar()),
-            "wall": []
+            "wall": [ButtonLevelAdd(), ButtonLevelSub(), ButtonStairs()]
         }
 
         x = 512

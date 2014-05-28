@@ -51,10 +51,9 @@ class ObjectLayer(c.layer.ScrollableLayer):
             z = 2*MAP_SIZE - cell.i - cell.j
             self.batch.add(Wall(index, position=cell.position), z=z)
             if index < 6:
-                print("ok")
                 cell.passable = False
 
-    def summon_creature(self, house, path):
+    def summon_creature(self, path):
         creature = TestCube(position=self.parent.pillar_cell.position)
         z = 2*MAP_SIZE - path[0].i - path[0].j
         self.batch.add(creature, z=z)

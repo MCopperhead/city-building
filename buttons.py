@@ -100,6 +100,36 @@ class ButtonWall(Button):
         highlight.show()
 
 
+class ButtonStairs(Button):
+    def __init__(self):
+        super(ButtonStairs, self).__init__("stairs.png", position=(752, 75))
+
+    def on_release(self):
+        super(ButtonStairs, self).on_release()
+        shared_data.mode = Modes.STAIRS
+        highlight.show()
+
+
+class ButtonLevelAdd(Button):
+    def __init__(self):
+        super(ButtonLevelAdd, self).__init__("cell_level_add.png", position=(812, 75))
+
+    def on_release(self):
+        super(ButtonLevelAdd, self).on_release()
+        shared_data.mode = Modes.LEVEL[0]
+        highlight.show()
+
+
+class ButtonLevelSub(Button):
+    def __init__(self):
+        super(ButtonLevelSub, self).__init__("cell_level_sub.png", position=(812, 31))
+
+    def on_release(self):
+        super(ButtonLevelSub, self).on_release()
+        shared_data.mode = Modes.LEVEL[1]
+        highlight.show()
+
+
 class Switcher(c.sprite.Sprite):
     def on_press(self):
         self.parent.change_panel(self.type)
