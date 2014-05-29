@@ -49,7 +49,8 @@ class ObjectLayer(c.layer.ScrollableLayer):
     def add_wall(self, cell, index):
         if cell.passable and cell.type != Cell.ROAD:
             z = 2*MAP_SIZE - cell.i - cell.j
-            self.batch.add(Wall(index, position=cell.position), z=z)
+            wall = Wall(index, position=cell.position)
+            self.batch.add(wall, z=z)
             if index < 6:
                 cell.passable = False
 

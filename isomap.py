@@ -9,7 +9,7 @@ from highlight_layer import Highlight
 from interface import Interface
 from object_layer import ObjectLayer
 from scroller import Scroller
-from objects import Tree, House, Pillar, Building, Stairs
+from objects import Tree, House, Pillar, Building, Stairs, Wall
 # from profilehooks import profile
 
 interface = Interface()
@@ -174,10 +174,12 @@ class IsoMap(c.layer.ScrollableLayer):
                 left_cell.neighbours.append(right_cell)
                 right_cell.level = -1
 
-            elif shared_data.mode == Modes.LEVEL[0]:
-                cell.level += 1
-            elif shared_data.mode == Modes.LEVEL[1]:
-                cell.level -= 1
+            elif shared_data.mode in Modes.LEVEL:
+                if shared_data.mode == Modes.LEVEL[0]:
+                    cell.level += 1
+                if shared_data.mode == Modes.LEVEL[1]:
+                    cell.level -= 1
+                self.object_layer.add(c.text.Label(str(cell.level), position=cell.position))
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
         if y < 150:
@@ -390,3 +392,33 @@ class IsoMap(c.layer.ScrollableLayer):
         #         building.color = (0, 255, 0)
         #     else:
         #         building.color = (255, 0, 0)
+
+    # def change_cell_level(self, start_cell, level):
+    #     closed_list = set()
+    #     opened_list = set()
+    #     opened_list.add(start_cell)
+    #     while opened_list:
+    #         current_cell = opened_list.pop()
+    #         closed_list.add(current_cell)
+    #
+    #         if current_cell.wall == "thick":
+    #             continue
+    #         elif current_cell.wall == "thin":
+    #             current_cell.level += level
+    #             continue
+    #         current_cell.level += level
+    #         for cell in current_cell.neighbours:
+    #             if cell not in closed_list:
+    #                 # if cell.wall:
+    #                 #     if cell.wall == "thin":
+    #                 #         cell.level += 1
+    #                 #     closed_list.add(cell)
+    #                 #     continue
+    #                 if cell not in opened_list:
+    #                     opened_list.add(cell)
+    #
+    #
+    #     for row in self.cells:
+    #         for cell in row:
+    #             if cell.level == 1:
+    #                 cell.color = (0, 255, 0)

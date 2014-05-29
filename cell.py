@@ -140,6 +140,7 @@ class Cell(c.sprite.Sprite, Rhombus):
         self.H = 0
         self.F = 0
         self.parent_cell = None
+        self.wall = None
 
     def contains(self, x, y):
         return Rhombus.contains(self, x, y)
