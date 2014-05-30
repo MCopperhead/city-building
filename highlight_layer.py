@@ -23,7 +23,7 @@ class Highlight(c.layer.Layer):
         self.highlight_children = {
             Modes.TREE: Tree(),
             Modes.DELETE: c.sprite.Sprite(textures.HAMMER),
-            Modes.HOUSING: House(),
+            Modes.HOUSING: House(z=0),
             Modes.PILLAR: Pillar(),
             Modes.STAIRS: Stairs(),
             Modes.LEVEL[0]: c.sprite.Sprite(textures.CELL_LEVEL_ADD),

@@ -35,14 +35,16 @@ class ObjectLayer(c.layer.ScrollableLayer):
 
     def add_object(self, cell, object_class, building=False):
         if cell.passable and cell.type != Cell.ROAD:
-            obj = object_class(position=cell.position)
             z = 2*MAP_SIZE - cell.i - cell.j
+            if building:
+                obj = object_class(position=cell.position, z=z)
+                self.buildings.add(obj)
+                obj.cell = cell
+            else:
+                obj = object_class(position=cell.position)
             self.batch.add(obj, z=z)
             cell.child = obj
             cell.passable = False
-            if building:
-                self.buildings.add(obj)
-                obj.cell = cell
             return obj
         return None
 

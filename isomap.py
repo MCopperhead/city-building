@@ -126,7 +126,7 @@ class IsoMap(c.layer.ScrollableLayer):
         self.schedule_interval(self.process_buildings_queue, 1)
 
     def on_mouse_motion(self, x, y, dx, dy):
-        if y < 150:
+        if y < 150 or interface.modal_window:
             return
         x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
@@ -135,54 +135,58 @@ class IsoMap(c.layer.ScrollableLayer):
         self.highlight.tile_highlight.position = cell.position
 
     def on_mouse_press(self, x, y, button, modifiers):
-        if y < 150:
+        if y < 150 or interface.modal_window:
             return
         x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
-        cell = self.find_cell(x, y)
-        if cell:
-            self.start_cell = cell
-            if shared_data.mode == Modes.DELETE:
-                self.mark_cells(cell)
-            elif shared_data.mode == Modes.TREE:
-                self.object_layer.add_object(cell, Tree)
-            elif shared_data.mode == Modes.ROAD:
-                if cell.passable:
+        if shared_data.mode == Modes.NORMAL:
+            buildings = [(building.z, building) for building in self.object_layer.buildings if building.contains(x, y)]
+            obj = min(buildings)[1]
+            interface.show_infocard(obj)
+        else:
+            cell = self.find_cell(x, y)
+            if cell:
+                self.start_cell = cell
+                if shared_data.mode == Modes.DELETE:
+                    self.mark_cells(cell)
+                elif shared_data.mode == Modes.TREE:
+                    self.object_layer.add_object(cell, Tree)
+                elif shared_data.mode == Modes.ROAD:
+                    if cell.passable:
+                        cell.add_road()
+                elif shared_data.mode == Modes.HOUSING:
+                    self.object_layer.add_object(cell, House, building=True)
+                elif shared_data.mode == Modes.PILLAR:
+                    if not self.pillar_cell:
+                        if self.object_layer.add_object(cell, Pillar):
+                            self.pillar_cell = cell
+                            cell.type = Cell.ROAD
+                elif shared_data.mode in Modes.WALL:
+                    self.object_layer.add_wall(cell, int(shared_data.mode[-1]))
+                elif shared_data.mode == Modes.STAIRS:
+                    self.object_layer.add_object(cell, Stairs)
+
+                    # у клетки у основания лестницы и над ступенями добавляем дорогу,
+                    # чтобы из лестницы нормально рисовалось продолжение дороги
+                    top_cell = self.cells[cell.i+1][cell.j+1]
+                    top_cell.add_road()
                     cell.add_road()
-            elif shared_data.mode == Modes.HOUSING:
-                self.object_layer.add_object(cell, House, building=True)
-            elif shared_data.mode == Modes.PILLAR:
-                if not self.pillar_cell:
-                    if self.object_layer.add_object(cell, Pillar):
-                        self.pillar_cell = cell
-                        cell.type = Cell.ROAD
-            elif shared_data.mode in Modes.WALL:
-                self.object_layer.add_wall(cell, int(shared_data.mode[-1]))
-            elif shared_data.mode == Modes.STAIRS:
-                self.object_layer.add_object(cell, Stairs)
 
-                # у клетки у основания лестницы и над ступенями добавляем дорогу,
-                # чтобы из лестницы нормально рисовалось продолжение дороги
-                top_cell = self.cells[cell.i+1][cell.j+1]
-                top_cell.add_road()
-                cell.add_road()
-
-                # добавляем клетки у основания лестницы и сверху друг другу в соседи, чтобы они были соединены при
-                # поиске пути
-                right_cell = self.cells[cell.i-1][cell.j]
-                left_cell = self.cells[cell.i+2][cell.j+1]
-                right_cell.neighbours.append(left_cell)
-                left_cell.neighbours.append(right_cell)
-                right_cell.level = -1
-
-            elif shared_data.mode in Modes.LEVEL:
-                if shared_data.mode == Modes.LEVEL[0]:
-                    cell.level += 1
-                if shared_data.mode == Modes.LEVEL[1]:
-                    cell.level -= 1
-                self.object_layer.add(c.text.Label(str(cell.level), position=cell.position))
+                    # добавляем клетки у основания лестницы и сверху друг другу в соседи, чтобы они были соединены при
+                    # поиске пути
+                    right_cell = self.cells[cell.i-1][cell.j]
+                    left_cell = self.cells[cell.i+2][cell.j+1]
+                    right_cell.neighbours.append(left_cell)
+                    left_cell.neighbours.append(right_cell)
+                    right_cell.level = -1
+                elif shared_data.mode in Modes.LEVEL:
+                    if shared_data.mode == Modes.LEVEL[0]:
+                        cell.level += 1
+                    if shared_data.mode == Modes.LEVEL[1]:
+                        cell.level -= 1
+                    self.object_layer.add(c.text.Label(str(cell.level), position=cell.position))
 
     def on_mouse_drag(self, x, y, dx, dy, button, modifiers):
-        if y < 150:
+        if y < 150 or interface.modal_window:
             return
         x, y = director.get_virtual_coordinates(*self.scroller.pixel_from_screen(x, y))
         cell = self.find_cell(x, y)
@@ -203,6 +207,9 @@ class IsoMap(c.layer.ScrollableLayer):
                 self.mark_cells(cell)
 
     def on_mouse_release(self, x, y, button, modifiers):
+        if interface.modal_window:
+            return
+
         self.start_cell = None
         self.highlight.roads.clear()
 

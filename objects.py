@@ -40,18 +40,19 @@ class Pillar(OrderedSprite):
 class Building(OrderedSprite):
     # Все здания должны соединяться дорогами с центральной Колонной.
     # Если здание не соединено - оно не работает.
-    def __init__(self, *args, **kwargs):
-        super(Building, self).__init__(*args, **kwargs)
+    def __init__(self, image, z, **kwargs):
+        super(Building, self).__init__(image, **kwargs)
         self.connected = False
         self.cell = None
+        self.z = z
 
 
 class House(Building):
-    def __init__(self, **kwargs):
+    def __init__(self, z, **kwargs):
         # TODO: дома должны развиваться не сами, как в цезаре, а вручную.
         # захотелось дом побольше - старые сносятся, новые строятся.
         # Для постройки больших домов должны выполняться определенные требования.
-        super(House, self).__init__(textures.BUILDINGS["house.png"], anchor=(29, 15), **kwargs)
+        super(House, self).__init__(textures.BUILDINGS["house.png"], z, anchor=(29, 15), **kwargs)
         self.population = 0
         self.max_population = 4
 

@@ -20,13 +20,16 @@ class Button(c.sprite.Sprite):
         # self.pressed = image.load("{}_pressed.png".format(self.base_image[:-4]))
         self.pressed = BUTTON_IMAGES["{}_pressed.png".format(self.base_image[:-4])]
 
+    def restore_image(self):
+        self.image = self.normal
+        self.image_anchor = (24, 16)
+
     def on_press(self):
         self.image = self.pressed
         self.image_anchor = (21, 14)
 
     def on_release(self):
-        self.image = self.normal
-        self.image_anchor = (24, 16)
+        pass
 
 
 class ButtonRoad(Button):
@@ -128,6 +131,20 @@ class ButtonLevelSub(Button):
         super(ButtonLevelSub, self).on_release()
         shared_data.mode = Modes.LEVEL[1]
         highlight.show()
+
+
+class ButtonClose(Button):
+    def __init__(self, **kwargs):
+        super(ButtonClose, self).__init__("close.png", **kwargs)
+
+    def on_press(self):
+        self.image = self.pressed
+        self.image_anchor = (43, 11)
+
+    def on_release(self):
+        super(ButtonClose, self).on_release()
+        self.image_anchor = (47, 12)
+        self.parent.close()
 
 
 class Switcher(c.sprite.Sprite):
