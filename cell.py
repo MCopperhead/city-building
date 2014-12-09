@@ -1,12 +1,13 @@
 import cocos as c
 import sys
+import os
 from ctypes import cdll
 import textures
 from shared_data import RHOMBUS_SIZE
 if sys.platform.startswith("linux"):
-    triangle = cdll.LoadLibrary("triangle.so")
+    triangle = cdll.LoadLibrary(os.getcwd() + "/triangle.so")
 elif sys.platform.startswith("win"):
-    triangle = cdll.LoadLibrary("triangle.dll")
+    triangle = cdll.LoadLibrary(os.getcwd() + "triangle.dll")
 else:
     triangle = None
 

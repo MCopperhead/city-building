@@ -154,6 +154,9 @@ class Switcher(c.sprite.Sprite):
     def on_release(self):
         pass
 
+    def restore_image(self):
+        pass
+
 
 class SwitcherMain(Switcher):
     def __init__(self):

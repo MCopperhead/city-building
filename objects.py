@@ -66,10 +66,17 @@ class TestCube(OrderedSprite):
 
     def move(self, path):
         action = c.actions.Delay(0)
+        prev_cell = path[0]
         for cell in path[1:]:
-            action += c.actions.MoveTo(cell.position, 1)
+            # если на пути лестница - юнит фактически двигается напрямую
+            # от клетки у подножия лестницы к клетке наверху
+            # так как между этими клетками расстояние больше, чем обычно, то нужно длительность действия пропорционально
+            # увеличивать.
+            duration = max(abs(cell.i - prev_cell.i), abs(cell.j - prev_cell.j))
+            action += c.actions.MoveTo(cell.position, duration)
             z = 2*MAP_SIZE - cell.i - cell.j
             action += c.actions.CallFunc(self.parent.change_z, self, z)
+            prev_cell = cell
         action += c.actions.CallFunc(self.kill)
         self.do(action)
 
