@@ -28,11 +28,11 @@ class Interface(c.layer.Layer):
     def __init__(self):
         super(Interface, self).__init__()
 
-        # TODO: главная панель состоит из нескольких изображений:
-        # Центральное: фиксированного размера с кнопками и миникартой, посередине.
-        # Разрешение игры по ширине не должно быть меньше этого центрального изображения.
-        # По бокам чисто декоративные картинки, которые будут заполнять экран по бокам от центрального изображения,
-        # когда разрешение игры больше, чем центральная картинка.
+        # TODO: main panel must consist from several images:
+        # Central: fixed size, with buttons and minimap.
+        # Window width resolution must be larger or equal than central image width.
+        # Decorative images on central image left and right sides, for filling the empty space if window width resolution
+        # is bigger than central image width.
         self._main_panel = c.sprite.Sprite("main_panel.png", position=(512, 75))
         self.add(self._main_panel)
         self.modal_window = None

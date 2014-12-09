@@ -165,14 +165,13 @@ class IsoMap(c.layer.ScrollableLayer):
                 elif shared_data.mode == Modes.STAIRS:
                     self.object_layer.add_object(cell, Stairs)
 
-                    # у клетки у основания лестницы и над ступенями добавляем дорогу,
-                    # чтобы из лестницы нормально рисовалось продолжение дороги
+                    # Place road at bottom of the stairs, so stairs will have correct road continuation.
                     top_cell = self.cells[cell.i+1][cell.j+1]
                     top_cell.add_road()
                     cell.add_road()
 
-                    # добавляем клетки у основания лестницы и сверху друг другу в соседи, чтобы они были соединены при
-                    # поиске пути
+                    # Set cells at bottom and at top of the stairs to neighbours of each other,
+                    # so they will be connected when finding path.
                     right_cell = self.cells[cell.i-1][cell.j]
                     left_cell = self.cells[cell.i+2][cell.j+1]
                     right_cell.neighbours.append(left_cell)
@@ -311,14 +310,13 @@ class IsoMap(c.layer.ScrollableLayer):
 
     def calculate_path(self, finish_cell, start_cell=None, only_roads=False):
         """
-        Функция ищет путь от стартовой клетки к финишной.
+        Finding path from start cell to finish cell.
         """
-        # TODO: добавить клеткам свойство level.
-        # это виртуальный уровень клетки над землей.
-        # При поиске пути вход на другой уровень возможен только через лестницу.
-        # То есть уровень текущей клетки сравнивается с уровнем проверяемой, и если у них уровни разные
-        # то проход тут невозможен. А у лестницы одновременно два уровня, то есть на неё можно наступать и с верхнего
-        # и с нижнего.
+        # TODO: add "level" property to cells
+        # this must be a virtual level of cell above the ground.
+        # When finding path, enter to the another level is available only through the stairs.
+        # So, level of current cell is compares with level of neighbour cell, and if their levels are different
+        # the path here is blocked. And the stairs must have two levels at the same time.
 
         if not start_cell:
             start_cell = self.start_cell
@@ -371,7 +369,7 @@ class IsoMap(c.layer.ScrollableLayer):
 
     def calculate_buildings_availability(self):
         """
-        Проверяет какие здания соединены дорогой с Колонной.
+        Checks which Houses connected with road to Pillar.
         """
         for building in self.object_layer.buildings:
             building.connected = False

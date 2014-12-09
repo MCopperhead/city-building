@@ -10,7 +10,7 @@ highlight = Highlight()
 
 class Button(c.sprite.Sprite):
     """
-    Класс для кнопок, управляющий сменой их вида при нажатии.
+    Manages the button appearance when it is pressed.
     """
     def __init__(self, *args, **kwargs):
         self.base_image = args[0]

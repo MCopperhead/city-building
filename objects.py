@@ -7,10 +7,9 @@ from shared_data import MAP_SIZE
 
 class OrderedSprite(c.sprite.Sprite):
     """
-    Спрайт с исправленным методом set_batch.
-    В оригинальном методе батчи не учитывают индекс z при добавлении спрайта.
-    Причём, в более ранних версиях cocos2d было нормально. Непонятно зачем изменили.
-    Патч нашел здесь:
+    Sprite with fixed "set_batch" method.
+    In the original method, batches doesn't respect the Z level, when sprite is added.
+    Patch is found here:
     https://groups.google.com/forum/#!topic/cocos-discuss/baOYgFpmvVk
     """
     def set_batch(self, batch, groups=None, z=0):
@@ -38,8 +37,8 @@ class Pillar(OrderedSprite):
 
 
 class Building(OrderedSprite):
-    # Все здания должны соединяться дорогами с центральной Колонной.
-    # Если здание не соединено - оно не работает.
+    # All building must be connected by roads with central pillar.
+    # If building is not connected - it is disabled.
     def __init__(self, image, z, **kwargs):
         super(Building, self).__init__(image, **kwargs)
         self.connected = False
@@ -49,9 +48,6 @@ class Building(OrderedSprite):
 
 class House(Building):
     def __init__(self, z, **kwargs):
-        # TODO: дома должны развиваться не сами, как в цезаре, а вручную.
-        # захотелось дом побольше - старые сносятся, новые строятся.
-        # Для постройки больших домов должны выполняться определенные требования.
         super(House, self).__init__(textures.BUILDINGS["house.png"], z, anchor=(29, 15), **kwargs)
         self.population = 0
         self.max_population = 4
@@ -68,10 +64,6 @@ class TestCube(OrderedSprite):
         action = c.actions.Delay(0)
         prev_cell = path[0]
         for cell in path[1:]:
-            # если на пути лестница - юнит фактически двигается напрямую
-            # от клетки у подножия лестницы к клетке наверху
-            # так как между этими клетками расстояние больше, чем обычно, то нужно длительность действия пропорционально
-            # увеличивать.
             duration = max(abs(cell.i - prev_cell.i), abs(cell.j - prev_cell.j))
             action += c.actions.MoveTo(cell.position, duration)
             z = 2*MAP_SIZE - cell.i - cell.j

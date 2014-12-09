@@ -6,7 +6,7 @@ from objects import TestCube, Wall
 
 class DynamicBatch(c.batch.BatchNode):
     """
-    Батч, позволяющий менять z дочернего объекта на лету.
+    Batch modification, that allows to change Z level of child object dynamically.
     """
     def change_z(self, child, z):
         child.set_batch(None)

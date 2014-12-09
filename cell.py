@@ -28,7 +28,7 @@ class Rhombus():
         if triangle:
             return triangle.contains(int(x), int(y), *(self.left+self.top+self.right+self.left+self.bottom+self.right))
         else:
-            # Если нет скомпилированной библиотеки под текущую ОС - используем медленную питоновую реализацию
+            # If there are no compiled triangle library for current OS, then using this slow Python realization.
             for x1, y1, x2, y2, x3, y3 in (self.left+self.top+self.right, self.left+self.bottom+self.right):
                 s = abs(x2*y3-x3*y2-x1*y3+x3*y1+x1*y2-x2*y1)
                 s1 = abs(x2*y3-x3*y2-x*y3+x3*y+x*y2-x2*y)
@@ -40,7 +40,7 @@ class Rhombus():
 
     def subdivide(self):
         """
-        Рекурсивно делит ромб на 4 меньших ромба, а те 4 еще на 4 каждый и т.д.
+        Recursively subdividing rhombus on 4 smaller rhombuses and so on...
         """
         if self.size // 2 < RHOMBUS_SIZE:
             return
@@ -92,9 +92,10 @@ class Cell(c.sprite.Sprite, Rhombus):
     GROUND = "ground"
     ROAD = "road"
 
-    # узлы - места ячеек дорог, где они соединяются с другими
-    # ячейка проверяет своих соседей, и если они являются дорогами - она побитовым ИЛИ записывает себе нужные узлы
-    # и потом из словаря выбирается нужное изображение
+    # Nodes indicates in which directions road cell connects with neighbour road cells.
+    # Cell checks it's neighbours, and if they are roads,
+    # then it writes to itself corresponding nodes with bitwise OR.
+    # And then the corresponding road image is taken from the dictionary NODES.
     NODE_LEFT = 0b1000
     NODE_TOP = 0b0100
     NODE_RIGHT = 0b0010
@@ -121,7 +122,6 @@ class Cell(c.sprite.Sprite, Rhombus):
 
     def __init__(self, cell_image, x, y, i, j, cell_type=GROUND):
         super(Cell, self).__init__(cell_image)
-        # c.sprite.Sprite.__init__(self, cell_image)
         self.position = (x, y)
         self.i = i
         self.j = j
@@ -131,8 +131,7 @@ class Cell(c.sprite.Sprite, Rhombus):
         self.bottom = (x, y-15)
         self.type = cell_type
         self.neighbours = []
-        self.child = None  # объект, который находится в object_layer и стоит на этой клетке. Например, дерево или дом.
-
+        self.child = None  # object, that placed on this cell. Tree or house, for example.
         self.node = 0b0000
 
         self.passable = True
